@@ -7,6 +7,9 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="寻味" />
+<link rel="preconnect" href="https://restapi.amap.com" />
+<link rel="dns-prefetch" href="https://restapi.amap.com" />
+<link rel="preconnect" href="https://xjpzdbhgfzstocscofzo.supabase.co" />
 <title>寻味 NearBite</title>
 <style>
 :root{--bg:#faf7f2;--ink:#1c1917;--sub:#78716c;--faint:#a8a29e;--line:#e7e0d6;--red:#b3342a;--gold:#e8a33d;--green:#047857}
@@ -85,7 +88,7 @@ footer{margin:52px 0 40px;padding-top:14px;border-top:1px solid var(--line);font
 </style>
 </head>
 <body>
-<div id="app"></div>
+<div id="app"><div style="min-height:100vh;display:flex;align-items:center;justify-content:center;font-size:14px;color:#a8a29e">寻味加载中…</div></div>
 <script>
 'use strict';
 /* ================= config ================= */
@@ -252,9 +255,18 @@ async function fetchAmap(lat,lng,radius){
   const ck='am'+roundC(lat)+','+roundC(lng)+','+radius;
   const hit=cGet(ck);
   if(hit)return{data:hit,cached:true};
-  const resp=await fetch(AMAP_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:key,location:lng+','+lat,radius:radius})});
-  if(!resp.ok)throw new Error('高德中转接口 '+resp.status);
-  const j=await resp.json();
+  const qs='key='+enc(key)+'&location='+lng+','+lat+'&radius='+radius+'&types=050000&offset=25&page=1&extensions=all&sortrule=distance&output=json';
+  let j=null,err=null;
+  try{
+    const resp=await fetch('https://restapi.amap.com/v3/place/around?'+qs);
+    if(resp.ok)j=await resp.json();else err=new Error('高德接口 '+resp.status);
+  }catch(e){err=e;}
+  if(!j){
+    try{
+      const resp2=await fetch(AMAP_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:key,location:lng+','+lat,radius:radius})});
+      if(resp2.ok)j=await resp2.json();else throw new Error('高德中转接口 '+resp2.status);
+    }catch(e2){throw err||e2;}
+  }
   if(j.status!=='1')throw new Error('高德接口报错：'+(j.info||'未知')+'（'+(j.infocode||'')+'）— 请确认 ⚙ 里的高德 Key 是「Web服务」类型且未设白名单');
   cSet(ck,j);
   return{data:j,cached:false};
