@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#b3342a" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="寻味" />
+<title>寻味 NearBite</title>
+<style>
+:root{--bg:#faf7f2;--ink:#1c1917;--sub:#78716c;--faint:#a8a29e;--line:#e7e0d6;--red:#b3342a;--gold:#e8a33d;--green:#047857}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:ui-sans-serif,-apple-system,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:720px;margin:0 auto;padding:0 20px}
+header{border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;background:var(--bg)}
+header .wrap{display:flex;align-items:center;gap:10px;padding:14px 20px}
+h1{font-size:17px;font-weight:600}
+.tag{font-size:12px;color:var(--faint)}
+@media(max-width:560px){.tag{display:none}}
+.spacer{flex:1}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+.btn-ghost{font-size:13px;color:var(--sub);padding:6px 10px;border-radius:6px}
+.btn-ghost:active{background:#f0ebe2}
+.btn-red{background:var(--red);color:#fff;font-size:14px;padding:12px 20px;border-radius:8px;font-weight:500}
+.btn-red:disabled{opacity:.5}
+.center-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.lock-card{width:100%;max-width:380px}
+.lock-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.lock-head h1{font-size:24px}
+.lock-sub{font-size:14px;color:var(--sub);margin-bottom:28px;line-height:1.6}
+.lock-row{display:flex;gap:8px}
+input[type=password],input[type=text]{width:100%;height:44px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:15px;color:var(--ink);outline:none}
+input:focus{border-color:var(--red)}
+.err{font-size:13px;color:var(--red);margin-top:10px}
+.state{padding:96px 0;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.state p{font-size:14px;color:var(--sub);max-width:340px;line-height:1.7}
+.spin{width:22px;height:22px;border:2.5px solid var(--line);border-top-color:var(--red);border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.geoline{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--faint);margin:18px 0 14px;flex-wrap:wrap}
+.demo{display:flex;gap:8px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;font-size:13px;color:#92400e;line-height:1.6;margin-bottom:18px}
+.demo code{background:#fef3c7;padding:0 4px;border-radius:4px}
+.demo a{color:#92400e}
+.tabs{display:flex;gap:24px;border-bottom:1px solid var(--line)}
+.tab{padding:10px 2px;font-size:14px;color:var(--faint);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.on{color:var(--ink);font-weight:500;border-bottom-color:var(--red)}
+.tab .n{font-size:11px;color:var(--faint);margin-left:5px}
+.mini-spin{display:inline-block;width:11px;height:11px;border:2px solid var(--line);border-top-color:var(--red);border-radius:50%;animation:sp 1s linear infinite;margin-left:6px;vertical-align:-1px}
+section.cat{margin-top:30px}
+.cat-head{display:flex;align-items:baseline;gap:8px;border-bottom:2px solid var(--ink);padding-bottom:6px;flex-wrap:wrap}
+.cat-head h2{font-size:16px;font-weight:600}
+.cat-head span{font-size:12px;color:var(--faint)}
+.place{display:flex;gap:14px;padding:15px 0;border-bottom:1px solid var(--line)}
+.rank{width:30px;flex-shrink:0;text-align:right;font-family:Georgia,"Songti SC",SimSun,serif;font-size:20px;line-height:1.2;color:#d6d3d1;padding-top:2px}
+.rank.top{color:var(--red);font-weight:700}
+.p-body{flex:1;min-width:0}
+.p-name{font-size:15px;font-weight:500}
+.p-dist{font-size:11px;color:var(--faint);margin-left:8px;white-space:nowrap}
+.p-meta{margin-top:4px;font-size:13px;color:#44403c;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.star{color:var(--gold)}
+.cnt{color:var(--faint);font-size:12px}
+.open{color:var(--green)}.closed{color:var(--faint)}
+.p-hours{font-size:12px;color:var(--sub);margin-top:2px}
+.p-review{margin-top:8px;border-left:2px solid rgba(232,163,61,.55);padding-left:10px;font-size:13px;color:#57534e;line-height:1.65}
+.p-review .who{display:block;font-size:11px;color:var(--faint);margin-top:2px}
+.p-links{margin-top:8px;display:flex;gap:14px;flex-wrap:wrap}
+.p-links a{font-size:12px;color:var(--sub);text-decoration:none}
+.p-links a.primary{color:var(--red)}
+.local{margin-top:44px;border-top:2px solid var(--ink);padding-top:20px}
+.local h2{font-size:17px;font-weight:600}
+.local .sub{font-size:14px;color:var(--sub);margin:6px 0 4px;line-height:1.7}
+.local .sub b{color:var(--ink)}
+footer{margin:52px 0 40px;padding-top:14px;border-top:1px solid var(--line);font-size:12px;color:var(--faint);line-height:1.7}
+.apierr{padding:60px 0;text-align:center}
+.apierr .m{font-size:14px;color:var(--red);margin-bottom:8px}
+.apierr .h{font-size:12px;color:var(--sub);max-width:420px;margin:0 auto;line-height:1.7}
+.modal-bg{position:fixed;inset:0;background:rgba(28,25,23,.4);display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}
+.modal{background:var(--bg);border-radius:12px;padding:24px;width:100%;max-width:420px}
+.modal h3{font-size:16px;margin-bottom:6px}
+.modal .tip{font-size:12px;color:var(--sub);line-height:1.7;margin-bottom:14px}
+.modal .tip a{color:var(--red)}
+.modal label{display:block;font-size:12px;color:var(--sub);margin:12px 0 4px}
+.modal .row{display:flex;gap:8px;margin-top:18px;justify-content:flex-end}
+.btn-line{border:1px solid var(--line);border-radius:8px;padding:11px 18px;font-size:14px;color:var(--sub);background:#fff}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+/* ================= config ================= */
+const PW_HASH='e849413c4d2ffe7b054f01960ecccfd1157bac67d179ef47559089a7ea25d2a2'; // sha256 of your password
+const LS={ok:'nb_ok',gkey:'nb_gkey',kkey:'nb_kkey',akey:'nb_akey'};
+const RADII=[1000,2000,3000];
+const PRICE={PRICE_LEVEL_FREE:'免费',PRICE_LEVEL_INEXPENSIVE:'¥',PRICE_LEVEL_MODERATE:'¥¥',PRICE_LEVEL_EXPENSIVE:'¥¥¥',PRICE_LEVEL_VERY_EXPENSIVE:'¥¥¥¥'};
+const REGION_META={KR:{label:'韩国',source:'Naver / Kakao'},JP:{label:'日本',source:'Tabelog'},HK:{label:'香港',source:'OpenRice'},TW:{label:'台湾',source:'Google 地图'},CN:{label:'中国大陆',source:'大众点评 / 高德'},OTHER:{label:'其他地区',source:'Google 地图'}};
+
+/* ================= utils ================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const enc=encodeURIComponent;
+const fmtD=m=>m==null?'':(m>=1000?(m/1000).toFixed(1)+' km':m+' m');
+const ICON_PIN='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
+async function sha256(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+function haversineM(a,b,c,d){const R=6371001,t=x=>x*Math.PI/180;const s=Math.sin(t(c-a)/2)**2+Math.cos(t(a))*Math.cos(t(c))*Math.sin(t(d-b)/2)**2;return Math.round(2*R*Math.asin(Math.sqrt(s)))}
+const roundC=v=>Math.round(v*500)/500;
+function detectRegion(lat,lng){
+  if(lat>=22.1&&lat<=22.62&&lng>=113.8&&lng<=114.5)return'HK';
+  if(lat>=21.8&&lat<=25.4&&lng>=119.2&&lng<=122.1)return'TW';
+  if((lat>=34.3&&lat<=38.8&&lng>=125.4&&lng<=131.95)||(lat>=33.0&&lat<=33.7&&lng>=126.0&&lng<=127.0))return'KR';
+  if((lat>=30.0&&lat<=45.8&&lng>=128.3&&lng<=146.1)||(lat>=24.0&&lat<=28.3&&lng>=122.9&&lng<=131.4))return'JP';
+  if(lat>=17.5&&lat<=53.7&&lng>=73.0&&lng<=135.2)return'CN';
+  return'OTHER';
+}
+
+/* ================= category engine ================= */
+const BUCKETS=[
+ {id:'cafe',label:'咖啡·茶饮',types:['cafe','coffee_shop','tea_house','cat_cafe','dog_cafe','juice_shop','acai_shop']},
+ {id:'dessert',label:'烘焙·甜品',types:['bakery','dessert_shop','dessert_restaurant','ice_cream_shop','donut_shop','bagel_shop','candy_store','confectionery','chocolate_shop'],kw:['面包','麵包','烘焙','bakery','빵','베이커리','パン','蛋糕','甜品','甜点','dessert','cake','冰淇淋','雪糕']},
+ {id:'soup',label:'汤饭·粉面·粥',types:['ramen_restaurant'],kw:['汤饭','湯飯','국밥','gukbap','拉面','拉麺','拉麵','ramen','라면','ラーメン','noodle','우동','udon','soba','そば','荞麦','粥','congee','죽','米粉','米线','pho','쌀국수','탕','찌개','soup'],kwSuf:['面','麵','麺'],kwExc:['面包','麵包','bakery','pain','빵']},
+ {id:'korean',label:'韩国料理',types:['korean_restaurant'],kw:['韩餐','韓餐','韩料','韓國','韩国','korean','한식','비빔밥','bibimbap','삼겹살']},
+ {id:'japanese',label:'日本料理',types:['japanese_restaurant','sushi_restaurant'],kw:['寿司','壽司','sushi','스시','鮨','鮓','居酒屋','izakaya','日式','日料','돈카츠','tonkatsu','炸猪排']},
+ {id:'chinese',label:'中式正餐',types:['chinese_restaurant'],kw:['中餐','川菜','粤菜','粵菜','湘菜','鲁菜','东北菜','dim sum','点心','點心','烤鸭','烤鴨','麻辣烫','麻辣香锅']},
+ {id:'hotpot',label:'火锅·烧烤',types:['barbecue_restaurant'],kw:['火锅','火鍋','hotpot','hot pot','샤브','烧烤','燒烤','bbq','烤肉','焼肉','yakiniku','불고기','고기집','串','꼬치','yakitori','烤串']},
+ {id:'western',label:'西餐·酒吧',types:['american_restaurant','italian_restaurant','french_restaurant','spanish_restaurant','greek_restaurant','mediterranean_restaurant','steak_house','pizza_restaurant','bar','pub','wine_bar','bar_and_grill','sports_bar','night_club','hamburger_restaurant'],kw:['牛排','steak','pizza','披萨','披薩','pasta','意面','burger','汉堡','漢堡','버거','bistro','wine']},
+ {id:'fastfood',label:'快餐·简餐',types:['fast_food_restaurant','meal_takeaway','meal_delivery','sandwich_shop','cafeteria'],kw:['快餐','便当','便當','도시락','弁当','subway','麦当劳','肯德基','분식']},
+ {id:'asian',label:'东南亚·异国',types:['thai_restaurant','indian_restaurant','indonesian_restaurant','middle_eastern_restaurant','turkish_restaurant','lebanese_restaurant','mexican_restaurant','brazilian_restaurant','vietnamese_restaurant','asian_restaurant'],kw:['泰餐','泰国菜','泰國菜','thai','越南菜','咖喱','curry','카레','印度菜']},
+ {id:'other',label:'其他美食',types:[]},
+];
+const T2B=new Map();for(const b of BUCKETS)for(const t of b.types)T2B.set(t,b.id);
+function bucketOf(p){
+  const raw=p.displayName&&p.displayName.text||'';const nm=raw.toLowerCase();
+  for(const b of BUCKETS){
+    if(b.kwExc&&b.kwExc.some(k=>nm.includes(k.toLowerCase())))continue;
+    if(b.kw&&b.kw.some(k=>nm.includes(k.toLowerCase())))return b.id;
+    if(b.kwSuf&&b.kwSuf.some(k=>raw.trimEnd().endsWith(k)))return b.id;
+  }
+  for(const t of p.types||[]){const id=T2B.get(t);if(id)return id;}
+  return'other';
+}
+const bayes=(r,c,m=15,C=4.1)=>!r?0:(c/(c+m))*r+(m/(c+m))*C;
+function pickReview(rs){
+  if(!rs||!rs.length)return null;
+  const best=[...rs].sort((a,b)=>(b.rating||0)-(a.rating||0))[0];
+  const t=best&&best.text&&best.text.text||'';
+  if(!t)return null;
+  return {text:t.length>140?t.slice(0,140)+'…':t,author:(best.authorAttribution&&best.authorAttribution.displayName)||'Google 用户'};
+}
+function todayHours(oh,lng){
+  if(!oh)return null;
+  if(oh.weekdayDescriptions&&oh.weekdayDescriptions.length){
+    const d=new Date(Date.now()+(lng/15)*3600e3);
+    return oh.weekdayDescriptions[(d.getUTCDay()+6)%7]||oh.weekdayDescriptions[0];
+  }
+  return oh.openNow!=null?(oh.openNow?'营业中':'已打烊'):null;
+}
+function localLinks(region,name){
+  const q=enc(name);
+  switch(region){
+    case'KR':return[{label:'Naver 地图',url:'https://map.naver.com/p/search/'+q},{label:'Kakao 地图',url:'https://map.kakao.com/link/search/'+q}];
+    case'JP':return[{label:'Tabelog',url:'https://tabelog.com/rstLst/?sw='+q},{label:'Google 地图',url:'https://www.google.com/maps/search/?api=1&query='+q}];
+    case'HK':return[{label:'OpenRice',url:'https://www.openrice.com/zh/hongkong/restaurants?what='+q},{label:'Google 地图',url:'https://www.google.com/maps/search/?api=1&query='+q}];
+    case'TW':return[{label:'Google 地图',url:'https://www.google.com/maps/search/?api=1&query='+q}];
+    case'CN':return[{label:'大众点评',url:'https://www.dianping.com/search/keyword/1/0_'+q},{label:'高德地图',url:'https://uri.amap.com/search?keyword='+q}];
+    default:return[{label:'Google 地图',url:'https://www.google.com/maps/search/?api=1&query='+q}];
+  }
+}
+function shapePlaces(raw,lat,lng,region){
+  const buckets=new Map();
+  for(const p of raw.places||[]){
+    const bid=bucketOf(p);
+    const name=(p.displayName&&p.displayName.text)||'未知';
+    const it={
+      id:p.id,name,bucket:bid,
+      rating:p.rating!=null?p.rating:null,
+      ratingCount:p.userRatingCount||0,
+      score:Math.round(bayes(p.rating,p.userRatingCount||0)*100)/100,
+      openNow:p.currentOpeningHours?p.currentOpeningHours.openNow!=null?p.currentOpeningHours.openNow:null:null,
+      hoursToday:todayHours(p.currentOpeningHours,lng),
+      distance:p.location?haversineM(lat,lng,p.location.latitude,p.location.longitude):null,
+      priceLevel:p.priceLevel||null,
+      review:pickReview(p.reviews),
+      mapsUrl:p.googleMapsUri||null,
+      localLinks:localLinks(region,name),
+    };
+    if(!buckets.has(bid))buckets.set(bid,[]);
+    buckets.get(bid).push(it);
+  }
+  const cats=[];
+  for(const b of BUCKETS){
+    const items=(buckets.get(b.id)||[]).sort((a,z)=>z.score-a.score).slice(0,8);
+    if(items.length)cats.push({id:b.id,label:b.label,items});
+  }
+  return cats;
+}
+
+/* ================= data sources ================= */
+const PLACE_TYPES=['restaurant','cafe','coffee_shop','tea_house','bakery','bar','pub','meal_takeaway','fast_food_restaurant','ramen_restaurant','korean_restaurant','japanese_restaurant','chinese_restaurant','sushi_restaurant','barbecue_restaurant','dessert_shop','ice_cream_shop','sandwich_shop','steak_house','seafood_restaurant'];
+const FIELD_MASK=['places.id','places.displayName','places.primaryType','places.types','places.rating','places.userRatingCount','places.currentOpeningHours','places.reviews','places.formattedAddress','places.location','places.googleMapsUri','places.priceLevel'].join(',');
+const cache=new Map();
+const CACHE_TTL=6*3600e3;
+const cGet=k=>{const h=cache.get(k);return h&&Date.now()-h.t<CACHE_TTL?h.v:null};
+const cSet=(k,v)=>cache.set(k,{t:Date.now(),v});
+
+async function fetchNearby(lat,lng,radius){
+  const key=localStorage.getItem(LS.gkey)||'';
+  const ck='nb'+roundC(lat)+','+roundC(lng)+','+radius;
+  const hit=cGet(ck);
+  if(hit)return{data:hit,cached:true};
+  let raw;
+  if(!key){raw=demoNearby(lat,lng,radius);}
+  else{
+    const resp=await fetch('https://places.googleapis.com/v1/places:searchNearby',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Goog-Api-Key':key,'X-Goog-FieldMask':FIELD_MASK},
+      body:JSON.stringify({includedTypes:PLACE_TYPES,maxResultCount:20,rankPreference:'POPULARITY',locationRestriction:{circle:{center:{latitude:lat,longitude:lng},radius:radius}}}),
+    });
+    if(!resp.ok){
+      const b=await resp.text().catch(()=> '');
+      if(resp.status===400&&/API key/i.test(b))throw new Error('Google API Key 无效 — 点击右上角 ⚙ 检查');
+      if(resp.status===403)throw new Error('Google Places 调用被拒绝（403）— 请确认已启用 Places API (New) 并开通计费，且 Key 的“网站限制”包含本页面域名');
+      throw new Error('Google Places '+resp.status+': '+b.slice(0,120));
+    }
+    raw=await resp.json();
+  }
+  cSet(ck,raw);
+  return{data:raw,cached:false};
+}
+function demoNearby(lat,lng,radius){
+  const names=[['蓝瓶子咖啡','cafe',4.6,512],['一兰拉面','soup',4.4,2301],['张妈猪肉汤饭','soup',4.7,388],['首尔家烤肉','hotpot',4.3,640],['山崎面包工房','dessert',4.5,205],['鮨·小泉','japanese',4.8,96],['老妈家常菜','chinese',4.2,1105],['Bistro Verde','western',4.4,178],['金师傅炸鸡啤酒','fastfood',4.1,842],['湄南河泰餐','asian',4.5,260],['晨间手冲专门店','cafe',4.8,143],['粥全粥到','soup',4.0,619]];
+  const reviews=['汤头浓郁，肉给得实在，饭点要排队。','性价比极高，本地人也常来。','环境安静适合久坐，手冲水准在线。','食材新鲜，服务殷勤，会再来。'];
+  return {places:names.map((n,i)=>{
+    const ang=i/names.length*Math.PI*2;
+    const d=Math.min(radius*.75,120+(i*137)%Math.max(200,radius-150));
+    return{id:'demo'+i,displayName:{text:n[0]},types:[n[1]==='cafe'?'cafe':n[1]==='soup'?'ramen_restaurant':'restaurant'],rating:n[2],userRatingCount:n[3],
+      currentOpeningHours:{openNow:i%4!==3,weekdayDescriptions:['周一: 09:00–21:00','周二: 09:00–21:00','周三: 09:00–21:00','周四: 09:00–21:00','周五: 09:00–22:00','周六: 10:00–22:00','周日: 10:00–20:00']},
+      reviews:[{rating:5,text:{text:reviews[i%reviews.length]},authorAttribution:{displayName:'示例用户'}}],
+      location:{latitude:lat+(d/111320)*Math.cos(ang),longitude:lng+(d/(111320*Math.cos(lat*Math.PI/180)))*Math.sin(ang)}};
+  })};
+}
+
+/* ================= views ================= */
+function viewLock(msg){
+  $('#app').innerHTML='<div class="center-screen"><form class="lock-card" id="lf">'+
+  '<div class="lock-head"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#b3342a" stroke-width="1.75"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg><h1>寻味 NearBite</h1></div>'+
+  '<p class="lock-sub">附近的店，按类别排给你看。此工具为私人所有，请输入访问密码。</p>'+
+  '<div class="lock-row"><input type="password" id="pw" placeholder="访问密码" autocomplete="current-password" autofocus><button type="submit" class="btn-red" id="pb">进入</button></div>'+
+  (msg?'<p class="err">'+esc(msg)+'</p>':'')+'</form></div>';
+  $('#lf').addEventListener('submit',async e=>{
+    e.preventDefault();$('#pb').disabled=true;
+    const h=await sha256($('#pw').value);
+    if(h===PW_HASH){localStorage.setItem(LS.ok,'1');boot();}
+    else{$('#pb').disabled=false;viewLock('密码不正确');}
+  });
+}
+function shell(){
+  $('#app').innerHTML='<header><div class="wrap">'+
+  '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b3342a" stroke-width="1.75"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>'+
+  '<h1>寻味 NearBite</h1><span class="tag">附近的店，按类别排给你看</span><div class="spacer"></div>'+
+  '<button class="btn-ghost" id="keys" title="设置 API Key">⚙ 密钥</button>'+
+  '<button class="btn-ghost" id="reloc">↻ 重新定位</button>'+
+  '<button class="btn-ghost" id="logout" title="退出">⏻</button></div></header><main class="wrap" id="main"></main>';
+  $('#reloc').addEventListener('click',()=>locate());
+  $('#keys').addEventListener('click',()=>viewKeys());
+  $('#logout').addEventListener('click',()=>{localStorage.removeItem(LS.ok);viewLock('');});
+}
+function viewKeys(){
+  const g=localStorage.getItem(LS.gkey)||'';
+  const div=document.createElement('div');
+  div.className='modal-bg';
+  div.innerHTML='<div class="modal"><h3>Google Places API Key</h3>'+
+  '<p class="tip">密钥只保存在<b>这台设备的浏览器</b>里，不会上传到任何地方。'+
+  '<a href="https://console.cloud.google.com/" target="_blank" rel="noreferrer">打开 Google Cloud</a> 创建项目 → 启用 <b>Places API (New)</b> → 创建 API Key（建议加“网站限制”为 <b>'+esc(location.hostname)+'</b>）。留空则使用演示数据。</p>'+
+  '<label>GOOGLE_MAPS_API_KEY</label><input type="text" id="gk" value="'+esc(g)+'" placeholder="AIza..." autocomplete="off">'+
+  '<div class="row"><button class="btn-line" id="kx">取消</button><button class="btn-red" id="ks">保存并刷新</button></div></div>';
+  document.body.appendChild(div);
+  div.addEventListener('click',e=>{if(e.target===div)div.remove();});
+  $('#kx').addEventListener('click',()=>div.remove());
+  $('#ks').addEventListener('click',()=>{localStorage.setItem(LS.gkey,$('#gk').value.trim());div.remove();cache.clear();if(geo&&!geo.error)startFetch();});
+}
+function stateHTML(kind,msg){
+  if(kind==='loading')return '<div class="state"><div class="spin"></div><p>'+esc(msg||'')+'</p></div>';
+  return '<div class="state"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#b3342a" stroke-width="1.5"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg><p>'+esc(msg)+'</p><button class="btn-red" id="reloc2">重新定位</button></div>';
+}
+
+/* ================= app ================= */
+let geo=null,activeRadius=1000,runId=0;
+const radii={1000:{status:'loading'},2000:{status:'loading'},3000:{status:'loading'}};
+const demo=()=>!(localStorage.getItem(LS.gkey)||'');
+
+function render(){
+  const main=$('#main');if(!main)return;
+  if(!geo){main.innerHTML=stateHTML('loading','正在请求定位权限并获取你的位置…');return;}
+  if(geo.error){main.innerHTML=stateHTML('error',geo.error);const b=$('#reloc2');if(b)b.addEventListener('click',()=>locate());return;}
+  const region=detectRegion(geo.lat,geo.lng);
+  const rm=REGION_META[region]||REGION_META.OTHER;
+  const st=radii[activeRadius];
+  let h='<div class="geoline">'+ICON_PIN+'<span>'+geo.lat.toFixed(5)+', '+geo.lng.toFixed(5)+'</span><span>· '+esc(rm.label)+'</span>';
+  if(st.status==='ready'&&st.cached)h+='<span>· 缓存结果（秒开）</span>';
+  h+='</div>';
+  if(demo())h+='<div class="demo">⚠ <span>当前为<b>演示数据</b>。点击右上角 <b>⚙ 密钥</b> 填入 Google Places API Key 后，即显示你周围的真实餐厅评分。</span></div>';
+  h+='<nav class="tabs">'+RADII.map(r=>{
+    const s=radii[r];let extra='';
+    if(s.status==='loading')extra='<span class="mini-spin"></span>';
+    else if(s.status==='ready')extra='<span class="n">'+s.cats.reduce((a,c)=>a+c.items.length,0)+' 家</span>';
+    return '<button class="tab'+(r===activeRadius?' on':'')+'" data-r="'+r+'">'+(r/1000)+' km 内'+extra+'</button>';
+  }).join('')+'</nav><div id="tabbody"></div>';
+  h+='<section class="local"><h2>本地平台对照 · '+esc(rm.label)+'</h2>'+
+  '<p class="sub">已根据你的定位自动切换到 <b>'+esc(rm.label)+'</b> 数据源：本地评分平台为 <b>'+esc(rm.source)+'</b>。'+
+  '上方每家餐厅卡片底部都附有其搜索直达链接，点击即可打开本地平台对照评分与评价（Naver / Tabelog / OpenRice / 大众点评均无开放评分 API，故采用直达链接对照）。</p></section>';
+  h+='<footer>评分与评价来自 Google Places（密钥仅存于本机浏览器）；结果按坐标缓存 6 小时。地区数据源已按定位自动切换。</footer>';
+  main.innerHTML=h;
+  main.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{activeRadius=Number(b.dataset.r);render();}));
+  renderTabBody();
+}
+function renderTabBody(){
+  const el=$('#tabbody');if(!el)return;
+  const st=radii[activeRadius];
+  if(st.status==='loading'){el.innerHTML='<div class="state"><div class="spin"></div></div>';return;}
+  if(st.status==='error'){el.innerHTML='<div class="apierr"><p class="m">'+esc(st.message)+'</p></div>';return;}
+  if(!st.cats.length){el.innerHTML='<div class="state"><p>这个范围内没有找到餐厅。</p></div>';return;}
+  el.innerHTML=st.cats.map(c=>'<section class="cat"><div class="cat-head"><h2>'+esc(c.label)+'</h2><span>'+c.items.length+' 家 · 按 Google 评分加权排序</span></div>'+c.items.map((p,i)=>placeHTML(p,i+1)).join('')+'</section>').join('');
+}
+function placeHTML(p,rank){
+  let h='<div class="place"><div class="rank'+(rank<=3?' top':'')+'">'+rank+'</div><div class="p-body">';
+  h+='<div><span class="p-name">'+esc(p.name)+'</span>';
+  if(p.distance!=null)h+='<span class="p-dist">'+ICON_PIN+' '+fmtD(p.distance)+'</span>';
+  h+='</div><div class="p-meta">';
+  if(p.rating!=null)h+='<span class="star">★</span><span><b>'+p.rating.toFixed(1)+'</b></span><span class="cnt">('+p.ratingCount+' 条评价)</span>';
+  else h+='<span class="cnt">暂无评分</span>';
+  if(p.priceLevel&&PRICE[p.priceLevel])h+='<span class="cnt">· '+PRICE[p.priceLevel]+'</span>';
+  if(p.openNow!=null)h+='<span class="'+(p.openNow?'open':'closed')+'">· '+(p.openNow?'营业中':'已打烊')+'</span>';
+  h+='</div>';
+  if(p.hoursToday)h+='<p class="p-hours">'+esc(p.hoursToday)+'</p>';
+  if(p.review)h+='<blockquote class="p-review">“'+esc(p.review.text)+'”<span class="who">— '+esc(p.review.author)+'</span></blockquote>';
+  h+='<div class="p-links">';
+  if(p.mapsUrl)h+='<a class="primary" href="'+esc(p.mapsUrl)+'" target="_blank" rel="noreferrer">Google 地图 ↗</a>';
+  (p.localLinks||[]).forEach(l=>{h+='<a href="'+esc(l.url)+'" target="_blank" rel="noreferrer">'+esc(l.label)+' ↗</a>';});
+  return h+'</div></div></div>';
+}
+function locate(){
+  shell();geo=null;render();
+  if(!navigator.geolocation){geo={error:'此浏览器不支持定位'};render();return;}
+  navigator.geolocation.getCurrentPosition(
+    p=>{geo={lat:p.coords.latitude,lng:p.coords.longitude};startFetch();},
+    e=>{geo={error:e.code===1?'定位权限被拒绝 — 请在浏览器设置中允许本站使用位置，然后点击重新定位':'定位失败：'+e.message};render();},
+    {enableHighAccuracy:true,timeout:15000,maximumAge:0}
+  );
+}
+function startFetch(){
+  const id=++runId;const {lat,lng}=geo;
+  RADII.forEach(r=>{radii[r]={status:'loading'};});
+  render();
+  const region=detectRegion(lat,lng);
+  RADII.forEach(r=>{
+    fetchNearby(lat,lng,r)
+      .then(res=>{if(id!==runId)return;radii[r]={status:'ready',cats:shapePlaces(res.data,lat,lng,region),cached:res.cached};render();})
+      .catch(err=>{if(id!==runId)return;radii[r]={status:'error',message:err.message};render();});
+  });
+}
+function boot(){
+  if(localStorage.getItem(LS.ok)!=='1'){viewLock('');return;}
+  locate();
+}
+boot();
+</script>
+</body>
+</html>
