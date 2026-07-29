@@ -209,22 +209,33 @@ async function fetchNearby(lat,lng,radius){
   if(hit)return{data:hit,cached:true};
   let raw;
   if(!key){raw=demoNearby(lat,lng,radius);}
-  else{
-    const resp=await fetch('https://places.googleapis.com/v1/places:searchNearby',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','X-Goog-Api-Key':key,'X-Goog-FieldMask':FIELD_MASK},
-      body:JSON.stringify({includedTypes:PLACE_TYPES,maxResultCount:20,rankPreference:'POPULARITY',locationRestriction:{circle:{center:{latitude:lat,longitude:lng},radius:radius}}}),
-    });
-    if(!resp.ok){
-      const b=await resp.text().catch(()=> '');
-      if(resp.status===400&&/API key/i.test(b))throw new Error('Google API Key 无效 — 点击右上角 ⚙ 检查');
-      if(resp.status===403)throw new Error('Google Places 调用被拒绝（403）— 请确认已启用 Places API (New) 并开通计费，且 Key 的“网站限制”包含本页面域名');
-      throw new Error('Google Places '+resp.status+': '+b.slice(0,120));
-    }
-    raw=await resp.json();
-  }
+  else{raw=await callPlaces(key,lat,lng,radius);}
   cSet(ck,raw);
   return{data:raw,cached:false};
+}
+const PROXY='https://xjpzdbhgfzstocscofzo.supabase.co/functions/v1/nearbite/places';
+async function callPlaces(key,lat,lng,radius){
+  const payload={includedTypes:PLACE_TYPES,maxResultCount:20,rankPreference:'POPULARITY',locationRestriction:{circle:{center:{latitude:lat,longitude:lng},radius:radius}}};
+  try{
+    return await gCall('https://places.googleapis.com/v1/places:searchNearby',key,payload,false);
+  }catch(e){
+    if(e&&e.net){return await gCall(PROXY,key,payload,true);}
+    throw e;
+  }
+}
+async function gCall(url,key,payload,proxy){
+  let resp;
+  const headers=proxy?{'Content-Type':'application/json'}:{'Content-Type':'application/json','X-Goog-Api-Key':key,'X-Goog-FieldMask':FIELD_MASK};
+  const body=proxy?JSON.stringify({key:key,fieldMask:FIELD_MASK,payload:payload}):JSON.stringify(payload);
+  try{resp=await fetch(url,{method:'POST',headers:headers,body:body});}
+  catch(e){const err=new Error('浏览器无法直连 Google，正在通过云端中转重试…');err.net=true;throw err;}
+  if(!resp.ok){
+    const b=await resp.text().catch(()=> '');
+    if(resp.status===400&&/API key/i.test(b))throw new Error('Google API Key 无效 — 点击右上角 ⚙ 检查');
+    if(resp.status===403)throw new Error('Google Places 调用被拒绝（403）— 请确认已启用 Places API (New) 并开通计费；Key 建议不加“网站限制”（否则会挡住云端中转）');
+    throw new Error('Google Places '+resp.status+': '+b.slice(0,120));
+  }
+  return await resp.json();
 }
 function demoNearby(lat,lng,radius){
   const names=[['蓝瓶子咖啡','cafe',4.6,512],['一兰拉面','soup',4.4,2301],['张妈猪肉汤饭','soup',4.7,388],['首尔家烤肉','hotpot',4.3,640],['山崎面包工房','dessert',4.5,205],['鮨·小泉','japanese',4.8,96],['老妈家常菜','chinese',4.2,1105],['Bistro Verde','western',4.4,178],['金师傅炸鸡啤酒','fastfood',4.1,842],['湄南河泰餐','asian',4.5,260],['晨间手冲专门店','cafe',4.8,143],['粥全粥到','soup',4.0,619]];
@@ -270,7 +281,7 @@ function viewKeys(){
   div.className='modal-bg';
   div.innerHTML='<div class="modal"><h3>Google Places API Key</h3>'+
   '<p class="tip">密钥只保存在<b>这台设备的浏览器</b>里，不会上传到任何地方。'+
-  '<a href="https://console.cloud.google.com/" target="_blank" rel="noreferrer">打开 Google Cloud</a> 创建项目 → 启用 <b>Places API (New)</b> → 创建 API Key（建议加“网站限制”为 <b>'+esc(location.hostname)+'</b>）。留空则使用演示数据。</p>'+
+  '<a href="https://console.cloud.google.com/" target="_blank" rel="noreferrer">打开 Google Cloud</a> 创建项目 → 启用 <b>Places API (New)</b> → 创建 API Key（建议<b>不要</b>加“网站限制”，否则会挡住云端中转）。留空则使用演示数据。</p>'+
   '<label>GOOGLE_MAPS_API_KEY</label><input type="text" id="gk" value="'+esc(g)+'" placeholder="AIza..." autocomplete="off">'+
   '<div class="row"><button class="btn-line" id="kx">取消</button><button class="btn-red" id="ks">保存并刷新</button></div></div>';
   document.body.appendChild(div);
@@ -308,7 +319,7 @@ function render(){
   h+='<section class="local"><h2>本地平台对照 · '+esc(rm.label)+'</h2>'+
   '<p class="sub">已根据你的定位自动切换到 <b>'+esc(rm.label)+'</b> 数据源：本地评分平台为 <b>'+esc(rm.source)+'</b>。'+
   '上方每家餐厅卡片底部都附有其搜索直达链接，点击即可打开本地平台对照评分与评价（Naver / Tabelog / OpenRice / 大众点评均无开放评分 API，故采用直达链接对照）。</p></section>';
-  h+='<footer>评分与评价来自 Google Places（密钥仅存于本机浏览器）；结果按坐标缓存 6 小时。地区数据源已按定位自动切换。</footer>';
+  h+='<footer>评分与评价来自 Google Places（密钥仅存于本机浏览器）；结果按坐标缓存 6 小时。地区数据源已按定位自动切换。中国大陆网络下自动通过云端中转获取 Google 数据。</footer>';
   main.innerHTML=h;
   main.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{activeRadius=Number(b.dataset.r);render();}));
   renderTabBody();
