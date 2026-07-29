@@ -7,6 +7,9 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="寻味" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
 <link rel="preconnect" href="https://restapi.amap.com" />
 <link rel="dns-prefetch" href="https://restapi.amap.com" />
 <link rel="preconnect" href="https://xjpzdbhgfzstocscofzo.supabase.co" />
@@ -69,6 +72,9 @@ section.cat{margin-top:30px}
 .p-links{margin-top:8px;display:flex;gap:14px;flex-wrap:wrap}
 .p-links a{font-size:12px;color:var(--sub);text-decoration:none}
 .p-links a.primary{color:var(--red)}
+.p-photo{width:100%;max-height:170px;object-fit:cover;border-radius:8px;margin-top:8px;cursor:zoom-in;display:block;background:#f0ebe2}
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.86);display:flex;align-items:center;justify-content:center;z-index:30;cursor:zoom-out;padding:14px}
+.lb img{max-width:100%;max-height:100%;border-radius:8px}
 .local{margin-top:44px;border-top:2px solid var(--ink);padding-top:20px}
 .local h2{font-size:17px;font-weight:600}
 .local .sub{font-size:14px;color:var(--sub);margin:6px 0 4px;line-height:1.7}
@@ -78,7 +84,7 @@ footer{margin:52px 0 40px;padding-top:14px;border-top:1px solid var(--line);font
 .apierr .m{font-size:14px;color:var(--red);margin-bottom:8px}
 .apierr .h{font-size:12px;color:var(--sub);max-width:420px;margin:0 auto;line-height:1.7}
 .modal-bg{position:fixed;inset:0;background:rgba(28,25,23,.4);display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}
-.modal{background:var(--bg);border-radius:12px;padding:24px;width:100%;max-width:420px}
+.modal{background:var(--bg);border-radius:12px;padding:24px;width:100%;max-width:420px;max-height:86vh;overflow-y:auto}
 .modal h3{font-size:16px;margin-bottom:6px}
 .modal .tip{font-size:12px;color:var(--sub);line-height:1.7;margin-bottom:14px}
 .modal .tip a{color:var(--red)}
@@ -93,7 +99,7 @@ footer{margin:52px 0 40px;padding-top:14px;border-top:1px solid var(--line);font
 'use strict';
 /* ================= config ================= */
 const PW_HASH='e849413c4d2ffe7b054f01960ecccfd1157bac67d179ef47559089a7ea25d2a2'; // sha256 of your password
-const LS={ok:'nb_ok',gkey:'nb_gkey',kkey:'nb_kkey',akey:'nb_akey'};
+const LS={ok:'nb_ok',gkey:'nb_gkey',akey:'nb_akey'};
 const RADII=[1000,2000,3000];
 const PRICE={PRICE_LEVEL_FREE:'免费',PRICE_LEVEL_INEXPENSIVE:'¥',PRICE_LEVEL_MODERATE:'¥¥',PRICE_LEVEL_EXPENSIVE:'¥¥¥',PRICE_LEVEL_VERY_EXPENSIVE:'¥¥¥¥'};
 const REGION_META={KR:{label:'韩国',source:'Naver / Kakao'},JP:{label:'日本',source:'Tabelog'},HK:{label:'香港',source:'OpenRice'},TW:{label:'台湾',source:'Google 地图'},CN:{label:'中国大陆',source:'大众点评 / 高德'},OTHER:{label:'其他地区',source:'Google 地图'}};
@@ -103,6 +109,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const enc=encodeURIComponent;
 const fmtD=m=>m==null?'':(m>=1000?(m/1000).toFixed(1)+' km':m+' m');
+const fmtW=m=>m==null?'':' · 步行 '+Math.max(1,Math.round(m/83))+' 分钟';
 const ICON_PIN='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
 async function sha256(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 function haversineM(a,b,c,d){const R=6371001,t=x=>x*Math.PI/180;const s=Math.sin(t(c-a)/2)**2+Math.cos(t(a))*Math.cos(t(c))*Math.sin(t(d-b)/2)**2;return Math.round(2*R*Math.asin(Math.sqrt(s)))}
@@ -116,18 +123,57 @@ function detectRegion(lat,lng){
   return'OTHER';
 }
 
+/* ---- WGS-84 → GCJ-02（国测局纠偏，大陆高德数据必须转换） ---- */
+const PI84=3.14159265358979324,AXIS84=6378245.0,EE84=0.00669342162296594323;
+const outCN=(lat,lng)=>lng<72.004||lng>137.8347||lat<0.8293||lat>55.8271;
+function tLat(x,y){let r=-100+2*x+3*y+0.2*y*y+0.1*x*y+0.2*Math.sqrt(Math.abs(x));r+=(20*Math.sin(6*x*PI84)+20*Math.sin(2*x*PI84))*2/3;r+=(20*Math.sin(y*PI84)+40*Math.sin(y/3*PI84))*2/3;r+=(160*Math.sin(y/12*PI84)+320*Math.sin(y*PI84/30))*2/3;return r;}
+function tLng(x,y){let r=300+x+2*y+0.1*x*x+0.1*x*y+0.1*Math.sqrt(Math.abs(x));r+=(20*Math.sin(6*x*PI84)+20*Math.sin(2*x*PI84))*2/3;r+=(20*Math.sin(x*PI84)+40*Math.sin(x/3*PI84))*2/3;r+=(150*Math.sin(x/12*PI84)+300*Math.sin(x/30*PI84))*2/3;return r;}
+function wgs2gcj(lat,lng){
+  if(outCN(lat,lng))return[lat,lng];
+  let dLat=tLat(lng-105,lat-35),dLng=tLng(lng-105,lat-35);
+  const rad=lat/180*PI84;let mg=Math.sin(rad);mg=1-EE84*mg*mg;const sq=Math.sqrt(mg);
+  dLat=(dLat*180)/((AXIS84*(1-EE84))/(mg*sq)*PI84);
+  dLng=(dLng*180)/(AXIS84/sq*Math.cos(rad)*PI84);
+  return[lat+dLat,lng+dLng];
+}
+
+/* ---- 分享链接密钥加解密（AES-GCM + PBKDF2，密钥不出本机） ---- */
+async function pbkdf(pw,salt){const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt:salt,iterations:60000,hash:'SHA-256'},k,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
+async function encKeys(pw,obj){
+  const salt=crypto.getRandomValues(new Uint8Array(12)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const k=await pbkdf(pw,salt);
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},k,new TextEncoder().encode(JSON.stringify(obj)));
+  const buf=new Uint8Array(24+ct.byteLength);buf.set(salt,0);buf.set(iv,12);buf.set(new Uint8Array(ct),24);
+  let s='';for(let i=0;i<buf.length;i++)s+=String.fromCharCode(buf[i]);
+  return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+async function decKeys(pw,s){
+  try{
+    const bin=atob(s.replace(/-/g,'+').replace(/_/g,'/'));
+    const raw=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)raw[i]=bin.charCodeAt(i);
+    const k=await pbkdf(pw,raw.slice(0,12));
+    const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:raw.slice(12,24)},k,raw.slice(24));
+    return JSON.parse(new TextDecoder().decode(pt));
+  }catch(e){return null;}
+}
+const shareToken=()=>{const m=location.hash.match(/#s=([A-Za-z0-9_-]+)/);return m?m[1]:null;};
+
 /* ================= category engine ================= */
 const BUCKETS=[
- {id:'cafe',label:'咖啡·茶饮',types:['cafe','coffee_shop','tea_house','cat_cafe','dog_cafe','juice_shop','acai_shop']},
- {id:'dessert',label:'烘焙·甜品',types:['bakery','dessert_shop','dessert_restaurant','ice_cream_shop','donut_shop','bagel_shop','candy_store','confectionery','chocolate_shop'],kw:['面包','麵包','烘焙','bakery','빵','베이커리','パン','蛋糕','甜品','甜点','dessert','cake','冰淇淋','雪糕']},
- {id:'soup',label:'汤饭·粉面·粥',types:['ramen_restaurant'],kw:['汤饭','湯飯','국밥','gukbap','拉面','拉麺','拉麵','ramen','라면','ラーメン','noodle','우동','udon','soba','そば','荞麦','粥','congee','죽','米粉','米线','pho','쌀국수','탕','찌개','soup'],kwSuf:['面','麵','麺'],kwExc:['面包','麵包','bakery','pain','빵']},
- {id:'korean',label:'韩国料理',types:['korean_restaurant'],kw:['韩餐','韓餐','韩料','韓國','韩国','korean','한식','비빔밥','bibimbap','삼겹살']},
- {id:'japanese',label:'日本料理',types:['japanese_restaurant','sushi_restaurant'],kw:['寿司','壽司','sushi','스시','鮨','鮓','居酒屋','izakaya','日式','日料','돈카츠','tonkatsu','炸猪排']},
- {id:'chinese',label:'中式正餐',types:['chinese_restaurant'],kw:['中餐','川菜','粤菜','粵菜','湘菜','鲁菜','东北菜','dim sum','点心','點心','烤鸭','烤鴨','麻辣烫','麻辣香锅']},
- {id:'hotpot',label:'火锅·烧烤',types:['barbecue_restaurant'],kw:['火锅','火鍋','hotpot','hot pot','샤브','烧烤','燒烤','bbq','烤肉','焼肉','yakiniku','불고기','고기집','串','꼬치','yakitori','烤串']},
- {id:'western',label:'西餐·酒吧',types:['american_restaurant','italian_restaurant','french_restaurant','spanish_restaurant','greek_restaurant','mediterranean_restaurant','steak_house','pizza_restaurant','bar','pub','wine_bar','bar_and_grill','sports_bar','night_club','hamburger_restaurant'],kw:['牛排','steak','pizza','披萨','披薩','pasta','意面','burger','汉堡','漢堡','버거','bistro','wine']},
- {id:'fastfood',label:'快餐·简餐',types:['fast_food_restaurant','meal_takeaway','meal_delivery','sandwich_shop','cafeteria'],kw:['快餐','便当','便當','도시락','弁当','subway','麦当劳','肯德基','분식']},
- {id:'asian',label:'东南亚·异国',types:['thai_restaurant','indian_restaurant','indonesian_restaurant','middle_eastern_restaurant','turkish_restaurant','lebanese_restaurant','mexican_restaurant','brazilian_restaurant','vietnamese_restaurant','asian_restaurant'],kw:['泰餐','泰国菜','泰國菜','thai','越南菜','咖喱','curry','카레','印度菜']},
+ {id:'cafe',label:'咖啡·茶饮',types:['cafe','coffee_shop','tea_house','cat_cafe','dog_cafe','juice_shop','acai_shop'],kw:['咖啡','奶茶','茶饮','茶飲','茶馆','茶館','茶艺','星巴克','瑞幸','luckin','costa','카페','커피','스타벅스','coffee','コーヒー','喫茶','カフェ','cafe']},
+ {id:'dessert',label:'烘焙·甜品',types:['bakery','dessert_shop','dessert_restaurant','ice_cream_shop','donut_shop','bagel_shop','candy_store','confectionery','chocolate_shop'],kw:['面包','麵包','烘焙','bakery','빵','베이커리','パン','蛋糕','甜品','甜点','dessert','cake','冰淇淋','雪糕','糕饼','西饼','冷饮','雪花冰','빙수','かき氷']},
+ {id:'soup',label:'汤饭·粉面·粥',types:['ramen_restaurant'],kw:['汤饭','湯飯','국밥','gukbap','拉面','拉麺','拉麵','ramen','라면','ラーメン','noodle','우동','udon','soba','そば','荞麦','粥','congee','죽','米粉','米线','pho','쌀국수','탕','찌개','soup','馄饨','餛飩','云吞','雲吞','牛肉汤','羊肉汤','骨头汤','面线','麵線'],kwSuf:['面','麵','麺'],kwExc:['面包','麵包','bakery','pain','빵']},
+ {id:'breakfast',label:'早餐·早点',types:['brunch_restaurant','breakfast_restaurant'],kw:['早餐','早点','早點','早茶','煎饼','煎餅','豆浆','豆漿','包子','馒头','油条','油條','brunch','브런치','モーニング','肠粉','腸粉']},
+ {id:'korean',label:'韩国料理',types:['korean_restaurant'],kw:['韩餐','韓餐','韩料','韓國','韩国','korean','한식','비빔밥','bibimbap','삼겹살','部队锅','部隊鍋','부대찌개','参鸡汤','參雞湯','삼계탕','冷面','冷麵','냉면','脊骨','감자탕','石锅','돌솥']},
+ {id:'japanese',label:'日本料理',types:['japanese_restaurant','sushi_restaurant'],kw:['寿司','壽司','sushi','스시','鮨','鮓','居酒屋','izakaya','日式','日料','돈카츠','tonkatsu','炸猪排','寿喜烧','壽喜燒','すき焼き','天妇罗','天婦羅','天ぷら','关东煮','關東煮','おでん','鳗鱼','鰻魚','うなぎ','うどん','怀石','懷石']},
+ {id:'chinese',label:'中式正餐',types:['chinese_restaurant'],kw:['中餐','川菜','粤菜','粵菜','湘菜','鲁菜','东北菜','dim sum','点心','點心','烤鸭','烤鴨','茶餐厅','茶餐廳','冰室','烧味','燒味','港式','粤式','台式','卤肉饭','滷肉飯','家常菜','私房菜','江浙菜','徽菜','闽菜','閩菜','本帮菜','西北菜']},
+ {id:'hotpot',label:'火锅·烧烤',types:['barbecue_restaurant'],kw:['火锅','火鍋','hotpot','hot pot','샤브','烧烤','燒烤','bbq','烤肉','焼肉','yakiniku','불고기','고기집','꼬치','yakitori','烤串','串串香','麻辣烫','麻辣香锅','涮肉','涮羊肉','羊蝎子','烧鸟','焼き鳥','串烧']},
+ {id:'western',label:'西餐·酒吧',types:['american_restaurant','italian_restaurant','french_restaurant','spanish_restaurant','greek_restaurant','mediterranean_restaurant','steak_house','pizza_restaurant','bar','pub','wine_bar','bar_and_grill','sports_bar','night_club','hamburger_restaurant'],kw:['牛排','steak','pizza','披萨','披薩','pasta','意面','burger','汉堡','漢堡','버거','bistro','wine','精酿','精釀','啤酒屋','cocktail','酒吧','餐吧']},
+ {id:'chicken',label:'炸鸡·鸡肉',types:['chicken_restaurant','chicken_wings_restaurant'],kw:['炸鸡','炸雞','치킨','chicken','チキン','唐扬','唐揚','から揚','盐酥鸡','鹽酥雞','烤鸡','烤雞','窑鸡','鸡排','雞排']},
+ {id:'fastfood',label:'快餐·简餐',types:['fast_food_restaurant','meal_takeaway','meal_delivery','sandwich_shop','cafeteria'],kw:['快餐','便当','便當','도시락','弁当','subway','麦当劳','肯德基','분식','小吃','盖饭','蓋飯','丼','黄焖鸡','黃燜雞','轻食餐']},
+ {id:'seafood',label:'海鲜·水产',types:['seafood_restaurant'],kw:['海鲜','海鮮','水产','水產','해물','海鲜排挡','生蚝','生蠔','大闸蟹','大閘蟹']},
+ {id:'asian',label:'东南亚·异国',types:['thai_restaurant','indian_restaurant','indonesian_restaurant','middle_eastern_restaurant','turkish_restaurant','lebanese_restaurant','mexican_restaurant','brazilian_restaurant','vietnamese_restaurant','asian_restaurant'],kw:['泰餐','泰国菜','泰國菜','thai','越南菜','咖喱','curry','카레','印度菜','冬阴功','冬蔭功','叻沙','肉骨茶','墨西哥']},
+ {id:'vegetarian',label:'素食·轻食',types:['vegan_restaurant','vegetarian_restaurant'],kw:['素食','轻食','輕食','沙拉','salad','채식','vegetarian','vegan','精進','斋菜','齋菜']},
  {id:'other',label:'其他美食',types:[]},
 ];
 const T2B=new Map();for(const b of BUCKETS)for(const t of b.types)T2B.set(t,b.id);
@@ -164,7 +210,7 @@ function localLinks(region,name){
     case'JP':return[{label:'Tabelog',url:'https://tabelog.com/rstLst/?sw='+q},{label:'Google 地图',url:'https://www.google.com/maps/search/?api=1&query='+q}];
     case'HK':return[{label:'OpenRice',url:'https://www.openrice.com/zh/hongkong/restaurants?what='+q},{label:'Google 地图',url:'https://www.google.com/maps/search/?api=1&query='+q}];
     case'TW':return[{label:'Google 地图',url:'https://www.google.com/maps/search/?api=1&query='+q}];
-    case'CN':return[{label:'大众点评',url:'https://www.dianping.com/search/keyword/1/0_'+q},{label:'高德地图',url:'https://uri.amap.com/search?keyword='+q}];
+    case'CN':return[{label:'大众点评',url:'https://www.dianping.com/search/keyword/1/0_'+q},{label:'小红书',url:'https://www.xiaohongshu.com/search_result?keyword='+q},{label:'高德地图',url:'https://uri.amap.com/search?keyword='+q}];
     default:return[{label:'Google 地图',url:'https://www.google.com/maps/search/?api=1&query='+q}];
   }
 }
@@ -177,6 +223,7 @@ function isBadVenue(p){
   return false;
 }
 function shapePlaces(raw,lat,lng,region){
+  const gk=localStorage.getItem(LS.gkey)||'';
   const buckets=new Map();
   for(const p of raw.places||[]){
     if(isBadVenue(p))continue;
@@ -192,6 +239,7 @@ function shapePlaces(raw,lat,lng,region){
       distance:p.location?haversineM(lat,lng,p.location.latitude,p.location.longitude):null,
       priceLevel:p.priceLevel||null,
       review:pickReview(p.reviews),
+      photo:(p.photos&&p.photos.length&&gk)?{small:'https://places.googleapis.com/v1/'+p.photos[0].name+'/media?maxWidthPx=400&key='+gk,big:'https://places.googleapis.com/v1/'+p.photos[0].name+'/media?maxWidthPx=1200&key='+gk}:null,
       mapsUrl:p.googleMapsUri||null,
       localLinks:localLinks(region,name),
     };
@@ -207,8 +255,8 @@ function shapePlaces(raw,lat,lng,region){
 }
 
 /* ================= data sources ================= */
-const PLACE_TYPES=['restaurant','cafe','coffee_shop','tea_house','bakery','bar','pub','meal_takeaway','fast_food_restaurant','ramen_restaurant','korean_restaurant','japanese_restaurant','chinese_restaurant','sushi_restaurant','barbecue_restaurant','dessert_shop','ice_cream_shop','sandwich_shop','steak_house','seafood_restaurant'];
-const FIELD_MASK=['places.id','places.displayName','places.primaryType','places.types','places.rating','places.userRatingCount','places.currentOpeningHours','places.reviews','places.formattedAddress','places.location','places.googleMapsUri','places.priceLevel'].join(',');
+const PLACE_TYPES=['restaurant','cafe','coffee_shop','tea_house','bakery','bar','pub','meal_takeaway','fast_food_restaurant','ramen_restaurant','korean_restaurant','japanese_restaurant','chinese_restaurant','sushi_restaurant','barbecue_restaurant','dessert_shop','ice_cream_shop','sandwich_shop','steak_house','seafood_restaurant','brunch_restaurant','breakfast_restaurant','vegan_restaurant','vegetarian_restaurant','chicken_restaurant'];
+const FIELD_MASK=['places.id','places.displayName','places.primaryType','places.types','places.rating','places.userRatingCount','places.currentOpeningHours','places.reviews','places.formattedAddress','places.location','places.googleMapsUri','places.priceLevel','places.photos'].join(',');
 const cache=new Map();
 const CACHE_TTL=6*3600e3;
 const cGet=k=>{const h=cache.get(k);return h&&Date.now()-h.t<CACHE_TTL?h.v:null};
@@ -250,26 +298,42 @@ async function gCall(url,key,payload,proxy){
   return await resp.json();
 }
 const AMAP_PROXY='https://xjpzdbhgfzstocscofzo.supabase.co/functions/v1/nearbite/amap';
+async function amapPage(key,loc,radius,pg){
+  const qs='key='+enc(key)+'&location='+loc+'&radius='+radius+'&types=050000&offset=25&page='+pg+'&extensions=all&sortrule=distance&output=json';
+  try{
+    const resp=await fetch('https://restapi.amap.com/v3/place/around?'+qs);
+    if(resp.ok)return await resp.json();
+    throw new Error('高德接口 '+resp.status);
+  }catch(e){
+    try{
+      const resp2=await fetch(AMAP_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:key,location:loc,radius:radius,page:pg})});
+      if(resp2.ok)return await resp2.json();
+    }catch(e2){}
+    throw e;
+  }
+}
 async function fetchAmap(lat,lng,radius){
   const key=localStorage.getItem(LS.akey)||'';
   const ck='am'+roundC(lat)+','+roundC(lng)+','+radius;
   const hit=cGet(ck);
   if(hit)return{data:hit,cached:true};
-  const qs='key='+enc(key)+'&location='+lng+','+lat+'&radius='+radius+'&types=050000&offset=25&page=1&extensions=all&sortrule=distance&output=json';
-  let j=null,err=null;
-  try{
-    const resp=await fetch('https://restapi.amap.com/v3/place/around?'+qs);
-    if(resp.ok)j=await resp.json();else err=new Error('高德接口 '+resp.status);
-  }catch(e){err=e;}
-  if(!j){
-    try{
-      const resp2=await fetch(AMAP_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:key,location:lng+','+lat,radius:radius})});
-      if(resp2.ok)j=await resp2.json();else throw new Error('高德中转接口 '+resp2.status);
-    }catch(e2){throw err||e2;}
+  const gl=wgs2gcj(lat,lng);
+  const loc=gl[1]+','+gl[0];
+  const pages=radius>=3000?3:radius>=2000?2:1;
+  const jobs=[];
+  for(let pg=1;pg<=pages;pg++)jobs.push(amapPage(key,loc,radius,pg));
+  const results=await Promise.all(jobs);
+  if(!results.length||results[0].status!=='1'){
+    const info=results[0]&&(results[0].info||'')||'未知';
+    const code=results[0]&&(results[0].infocode||'')||'';
+    throw new Error('高德接口报错：'+info+'（'+code+'）— 请确认 ⚙ 里的高德 Key 是「Web服务」类型且未设白名单');
   }
-  if(j.status!=='1')throw new Error('高德接口报错：'+(j.info||'未知')+'（'+(j.infocode||'')+'）— 请确认 ⚙ 里的高德 Key 是「Web服务」类型且未设白名单');
-  cSet(ck,j);
-  return{data:j,cached:false};
+  const merged={status:'1',pois:[]};const seen=new Set();
+  for(const j of results){
+    if(j.status==='1'&&j.pois)for(const p of j.pois){if(p.id&&!seen.has(p.id)){seen.add(p.id);merged.pois.push(p);}}
+  }
+  cSet(ck,merged);
+  return{data:merged,cached:false};
 }
 function shapeAmap(raw,lat,lng){
   const buckets=new Map();
@@ -277,12 +341,15 @@ function shapeAmap(raw,lat,lng){
     const name=p.name||'未知';
     const bid=bucketOf({displayName:{text:name+' '+(p.type||'')},types:[]});
     const ll=(p.location||'').split(',');
+    let photo=null;
+    try{if(p.photos&&p.photos.length&&p.photos[0]&&p.photos[0].url)photo={small:p.photos[0].url,big:p.photos[0].url};}catch(e){}
     const it={
       id:p.id,name,bucket:bid,
       rating:null,ratingCount:0,score:0,
-      openNow:null,hoursToday:null,
+      openNow:null,
+      hoursToday:(typeof p.business_time==='string'&&p.business_time)?p.business_time:null,
       distance:p.distance?Number(p.distance):(ll.length===2?haversineM(lat,lng,Number(ll[1]),Number(ll[0])):null),
-      priceLevel:null,review:null,
+      priceLevel:null,review:null,photo:photo,
       tel:(typeof p.tel==='string'&&p.tel)?p.tel:null,
       address:(typeof p.address==='string'&&p.address)?p.address:null,
       mapsUrl:ll.length===2?('https://uri.amap.com/marker?position='+ll[0]+','+ll[1]+'&name='+enc(name)+'&src=nearbite&coordinate=gaode'):null,
@@ -294,13 +361,13 @@ function shapeAmap(raw,lat,lng){
   }
   const cats=[];
   for(const b of BUCKETS){
-    const items=(buckets.get(b.id)||[]).sort((a,z)=>(a.distance||9e9)-(z.distance||9e9)).slice(0,8);
+    const items=(buckets.get(b.id)||[]).sort((a,z)=>(a.distance||9e9)-(z.distance||9e9)).slice(0,10);
     if(items.length)cats.push({id:b.id,label:b.label,items});
   }
   return cats;
 }
 function demoNearby(lat,lng,radius){
-  const names=[['蓝瓶子咖啡','cafe',4.6,512],['一兰拉面','soup',4.4,2301],['张妈猪肉汤饭','soup',4.7,388],['首尔家烤肉','hotpot',4.3,640],['山崎面包工房','dessert',4.5,205],['鮨·小泉','japanese',4.8,96],['老妈家常菜','chinese',4.2,1105],['Bistro Verde','western',4.4,178],['金师傅炸鸡啤酒','fastfood',4.1,842],['湄南河泰餐','asian',4.5,260],['晨间手冲专门店','cafe',4.8,143],['粥全粥到','soup',4.0,619]];
+  const names=[['蓝瓶子咖啡','cafe',4.6,512],['一兰拉面','soup',4.4,2301],['张妈猪肉汤饭','soup',4.7,388],['首尔家烤肉','hotpot',4.3,640],['山崎面包工房','dessert',4.5,205],['鮨·小泉','japanese',4.8,96],['老妈家常菜','chinese',4.2,1105],['Bistro Verde','western',4.4,178],['金师傅炸鸡啤酒','chicken',4.1,842],['湄南河泰餐','asian',4.5,260],['晨间手冲专门店','cafe',4.8,143],['粥全粥到','soup',4.0,619]];
   const reviews=['汤头浓郁，肉给得实在，饭点要排队。','性价比极高，本地人也常来。','环境安静适合久坐，手冲水准在线。','食材新鲜，服务殷勤，会再来。'];
   return {places:names.map((n,i)=>{
     const ang=i/names.length*Math.PI*2;
@@ -321,9 +388,18 @@ function viewLock(msg){
   (msg?'<p class="err">'+esc(msg)+'</p>':'')+'</form></div>';
   $('#lf').addEventListener('submit',async e=>{
     e.preventDefault();$('#pb').disabled=true;
-    const h=await sha256($('#pw').value);
-    if(h===PW_HASH){localStorage.setItem(LS.ok,'1');boot();}
-    else{$('#pb').disabled=false;viewLock('密码不正确');}
+    const pw=$('#pw').value;
+    const h=await sha256(pw);
+    if(h!==PW_HASH){$('#pb').disabled=false;viewLock('密码不正确');return;}
+    const st=shareToken();
+    if(st){
+      const keys=await decKeys(pw,st);
+      if(!keys){$('#pb').disabled=false;viewLock('分享链接解不开 — 需要用与分享者相同的访问密码');return;}
+      if(keys.g)localStorage.setItem(LS.gkey,keys.g);
+      if(keys.a)localStorage.setItem(LS.akey,keys.a);
+      history.replaceState(null,'',location.pathname);
+    }
+    localStorage.setItem(LS.ok,'1');boot();
   });
 }
 function shell(){
@@ -336,6 +412,19 @@ function shell(){
   $('#reloc').addEventListener('click',()=>locate());
   $('#keys').addEventListener('click',()=>viewKeys());
   $('#logout').addEventListener('click',()=>{localStorage.removeItem(LS.ok);viewLock('');});
+  if(!window._nbLB){
+    window._nbLB=1;
+    document.addEventListener('click',e=>{
+      const t=e.target;
+      if(t&&t.dataset&&t.dataset.big){
+        const d=document.createElement('div');
+        d.className='lb';
+        d.innerHTML='<img src="'+t.dataset.big+'" alt="">';
+        d.addEventListener('click',()=>d.remove());
+        document.body.appendChild(d);
+      }
+    });
+  }
 }
 function viewKeys(){
   const g=localStorage.getItem(LS.gkey)||'';
@@ -348,11 +437,25 @@ function viewKeys(){
   '<a href="https://lbs.amap.com/" target="_blank" rel="noreferrer">高德开放平台</a> 注册 → 创建应用 → 添加 Key，服务平台选 <b>Web服务</b>（免费，不设白名单）。两者都留空则使用演示数据。</p>'+
   '<label>GOOGLE_MAPS_API_KEY（韩日港台等）</label><input type="text" id="gk" value="'+esc(g)+'" placeholder="AIza..." autocomplete="off">'+
   '<label>高德 KEY · Web服务（中国大陆推荐）</label><input type="text" id="ak" value="'+esc(a)+'" placeholder="32 位高德 Web服务 Key" autocomplete="off">'+
-  '<div class="row"><button class="btn-line" id="kx">取消</button><button class="btn-red" id="ks">保存并刷新</button></div></div>';
+  '<div class="row"><button class="btn-line" id="ksh">🔗 生成分享链接</button><button class="btn-line" id="kx">取消</button><button class="btn-red" id="ks">保存并刷新</button></div>'+
+  '<div id="shareout" style="display:none;margin-top:12px"><label>把这个链接 + 访问密码发给朋友（免填密钥）：</label><input type="text" id="shareurl" readonly onclick="this.select()"></div>'+
+  '</div>';
   document.body.appendChild(div);
   div.addEventListener('click',e=>{if(e.target===div)div.remove();});
   $('#kx').addEventListener('click',()=>div.remove());
   $('#ks').addEventListener('click',()=>{localStorage.setItem(LS.gkey,$('#gk').value.trim());localStorage.setItem(LS.akey,$('#ak').value.trim());div.remove();cache.clear();if(geo&&!geo.error)startFetch();});
+  $('#ksh').addEventListener('click',async()=>{
+    const gg=$('#gk').value.trim(),aa=$('#ak').value.trim();
+    if(!gg&&!aa){alert('请先在上面填写至少一个密钥');return;}
+    const pw=prompt('输入你的访问密码（密钥将用它加密，朋友凭同一密码解开）');
+    if(!pw)return;
+    if((await sha256(pw))!==PW_HASH){alert('这不是本页的访问密码');return;}
+    const token=await encKeys(pw,{g:gg,a:aa});
+    $('#shareout').style.display='block';
+    $('#shareurl').value=location.origin+location.pathname+'#s='+token;
+    $('#shareurl').select();
+    if(navigator.clipboard)navigator.clipboard.writeText($('#shareurl').value).catch(()=>{});
+  });
 }
 function stateHTML(kind,msg){
   if(kind==='loading')return '<div class="state"><div class="spin"></div><p>'+esc(msg||'')+'</p></div>';
@@ -376,7 +479,7 @@ function render(){
   if(st.status==='ready'&&st.cached)h+='<span>· 缓存结果（秒开）</span>';
   h+='</div>';
   if(demo()&&!amapOn)h+='<div class="demo">⚠ <span>当前为<b>演示数据</b>。点击右上角 <b>⚙ 密钥</b> 填入 Google Places API Key 后，即显示你周围的真实餐厅评分。</span></div>';
-  if(region==='CN'&&amapOn)h+='<div class="demo" style="background:#ecfdf5;border-color:#a7f3d0;color:#065f46">✓ <span>大陆模式：列表来自<b>高德 POI（仅餐饮类，已排除酒店/便利店）</b>，按距离排序；评分与必吃榜请点击每家店下方的<b>大众点评</b>链接对照。</span></div>';
+  if(region==='CN'&&amapOn)h+='<div class="demo" style="background:#ecfdf5;border-color:#a7f3d0;color:#065f46">✓ <span>大陆模式：列表来自<b>高德 POI（仅餐饮类，已排除酒店/便利店，坐标已纠偏）</b>，按距离排序；评分与必吃榜请点击每家店下方的<b>大众点评 / 小红书</b>链接对照。</span></div>';
   if(region==='CN'&&!amapOn)h+='<div class="demo">💡 <span>大陆地区建议在 <b>⚙ 密钥</b> 里再填一个免费的<b>高德 Web 服务 Key</b>：分类更准、不混入酒店便利店。当前使用 Google 数据兜底（已尽力过滤非餐饮场所）。</span></div>';
   h+='<nav class="tabs">'+RADII.map(r=>{
     const s=radii[r];let extra='';
@@ -386,8 +489,8 @@ function render(){
   }).join('')+'</nav><div id="tabbody"></div>';
   h+='<section class="local"><h2>本地平台对照 · '+esc(rm.label)+'</h2>'+
   '<p class="sub">已根据你的定位自动切换到 <b>'+esc(rm.label)+'</b> 数据源：本地评分平台为 <b>'+esc(rm.source)+'</b>。'+
-  '上方每家餐厅卡片底部都附有其搜索直达链接，点击即可打开本地平台对照评分与评价（Naver / Tabelog / OpenRice / 大众点评均无开放评分 API，故采用直达链接对照）。</p></section>';
-  h+='<footer>评分与评价来自 Google Places（密钥仅存于本机浏览器）；结果按坐标缓存 6 小时。地区数据源已按定位自动切换。</footer>';
+  '上方每家餐厅卡片底部都附有其搜索直达链接，点击即可打开本地平台对照评分与评价（Naver / Tabelog / OpenRice / 大众点评 / 小红书均无开放评分 API，故采用直达链接对照）。</p></section>';
+  h+='<footer>评分与评价来自 Google Places；大陆列表来自高德 POI。结果按坐标缓存 6 小时。把本页「添加到主屏幕」即可当 App 用；⚙ 密钥里可生成免填密钥的分享链接。</footer>';
   main.innerHTML=h;
   main.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{activeRadius=Number(b.dataset.r);render();}));
   renderTabBody();
@@ -403,7 +506,7 @@ function renderTabBody(){
 function placeHTML(p,rank){
   let h='<div class="place"><div class="rank'+(rank<=3?' top':'')+'">'+rank+'</div><div class="p-body">';
   h+='<div><span class="p-name">'+esc(p.name)+'</span>';
-  if(p.distance!=null)h+='<span class="p-dist">'+ICON_PIN+' '+fmtD(p.distance)+'</span>';
+  if(p.distance!=null)h+='<span class="p-dist">'+ICON_PIN+' '+fmtD(p.distance)+fmtW(p.distance)+'</span>';
   h+='</div><div class="p-meta">';
   if(p.rating!=null)h+='<span class="star">★</span><span><b>'+p.rating.toFixed(1)+'</b></span><span class="cnt">('+p.ratingCount+' 条评价)</span>';
   else h+='<span class="cnt">暂无评分</span>';
@@ -413,6 +516,7 @@ function placeHTML(p,rank){
   if(p.hoursToday)h+='<p class="p-hours">'+esc(p.hoursToday)+'</p>';
   if(p.address)h+='<p class="p-hours">'+esc(p.address)+(p.tel?' · '+esc(p.tel):'')+'</p>';
   if(p.review)h+='<blockquote class="p-review">“'+esc(p.review.text)+'”<span class="who">— '+esc(p.review.author)+'</span></blockquote>';
+  if(p.photo)h+='<img class="p-photo" src="'+esc(p.photo.small)+'" data-big="'+esc(p.photo.big)+'" loading="lazy" alt="照片" onerror="this.style.display=\'none\'">';
   h+='<div class="p-links">';
   if(p.mapsUrl)h+='<a class="primary" href="'+esc(p.mapsUrl)+'" target="_blank" rel="noreferrer">'+esc(p.mapsLabel||'Google 地图')+' ↗</a>';
   (p.localLinks||[]).forEach(l=>{h+='<a href="'+esc(l.url)+'" target="_blank" rel="noreferrer">'+esc(l.label)+' ↗</a>';});
@@ -424,7 +528,7 @@ function locate(){
   navigator.geolocation.getCurrentPosition(
     p=>{geo={lat:p.coords.latitude,lng:p.coords.longitude};startFetch();},
     e=>{geo={error:e.code===1?'定位权限被拒绝 — 请在浏览器设置中允许本站使用位置，然后点击重新定位':'定位失败：'+e.message};render();},
-    {enableHighAccuracy:true,timeout:15000,maximumAge:0}
+    {enableHighAccuracy:true,timeout:20000,maximumAge:60000}
   );
 }
 function startFetch(){
@@ -442,9 +546,11 @@ function startFetch(){
   });
 }
 function boot(){
+  if(shareToken()){viewLock('');return;}
   if(localStorage.getItem(LS.ok)!=='1'){viewLock('');return;}
   locate();
 }
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
 boot();
 </script>
 </body>
