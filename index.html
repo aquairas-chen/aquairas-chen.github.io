@@ -165,9 +165,18 @@ function localLinks(region,name){
     default:return[{label:'Google 地图',url:'https://www.google.com/maps/search/?api=1&query='+q}];
   }
 }
+const BAD_TYPES=['lodging','hotel','motel','hostel','guest_house','convenience_store','grocery_store','supermarket','gas_station','car_wash','parking','atm','bank','pharmacy','drugstore'];
+const BAD_KW=['酒店','宾馆','旅馆','民宿','客栈','便利店','超市','商场','hotel','motel','hostel','호텔','ホテル','편의점','コンビニ','7-eleven','familymart','lawson','ministop'];
+function isBadVenue(p){
+  const nm=((p.displayName&&p.displayName.text)||'').toLowerCase();
+  if((p.types||[]).some(t=>BAD_TYPES.indexOf(t)>=0))return true;
+  if(BAD_KW.some(k=>nm.indexOf(k)>=0))return true;
+  return false;
+}
 function shapePlaces(raw,lat,lng,region){
   const buckets=new Map();
   for(const p of raw.places||[]){
+    if(isBadVenue(p))continue;
     const bid=bucketOf(p);
     const name=(p.displayName&&p.displayName.text)||'未知';
     const it={
@@ -237,6 +246,47 @@ async function gCall(url,key,payload,proxy){
   }
   return await resp.json();
 }
+const AMAP_PROXY='https://xjpzdbhgfzstocscofzo.supabase.co/functions/v1/nearbite/amap';
+async function fetchAmap(lat,lng,radius){
+  const key=localStorage.getItem(LS.akey)||'';
+  const ck='am'+roundC(lat)+','+roundC(lng)+','+radius;
+  const hit=cGet(ck);
+  if(hit)return{data:hit,cached:true};
+  const resp=await fetch(AMAP_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:key,location:lng+','+lat,radius:radius})});
+  if(!resp.ok)throw new Error('高德中转接口 '+resp.status);
+  const j=await resp.json();
+  if(j.status!=='1')throw new Error('高德接口报错：'+(j.info||'未知')+'（'+(j.infocode||'')+'）— 请确认 ⚙ 里的高德 Key 是「Web服务」类型且未设白名单');
+  cSet(ck,j);
+  return{data:j,cached:false};
+}
+function shapeAmap(raw,lat,lng){
+  const buckets=new Map();
+  for(const p of raw.pois||[]){
+    const name=p.name||'未知';
+    const bid=bucketOf({displayName:{text:name+' '+(p.type||'')},types:[]});
+    const ll=(p.location||'').split(',');
+    const it={
+      id:p.id,name,bucket:bid,
+      rating:null,ratingCount:0,score:0,
+      openNow:null,hoursToday:null,
+      distance:p.distance?Number(p.distance):(ll.length===2?haversineM(lat,lng,Number(ll[1]),Number(ll[0])):null),
+      priceLevel:null,review:null,
+      tel:(typeof p.tel==='string'&&p.tel)?p.tel:null,
+      address:(typeof p.address==='string'&&p.address)?p.address:null,
+      mapsUrl:ll.length===2?('https://uri.amap.com/marker?position='+ll[0]+','+ll[1]+'&name='+enc(name)+'&src=nearbite&coordinate=gaode'):null,
+      mapsLabel:'高德地图',
+      localLinks:localLinks('CN',name),
+    };
+    if(!buckets.has(bid))buckets.set(bid,[]);
+    buckets.get(bid).push(it);
+  }
+  const cats=[];
+  for(const b of BUCKETS){
+    const items=(buckets.get(b.id)||[]).sort((a,z)=>(a.distance||9e9)-(z.distance||9e9)).slice(0,8);
+    if(items.length)cats.push({id:b.id,label:b.label,items});
+  }
+  return cats;
+}
 function demoNearby(lat,lng,radius){
   const names=[['蓝瓶子咖啡','cafe',4.6,512],['一兰拉面','soup',4.4,2301],['张妈猪肉汤饭','soup',4.7,388],['首尔家烤肉','hotpot',4.3,640],['山崎面包工房','dessert',4.5,205],['鮨·小泉','japanese',4.8,96],['老妈家常菜','chinese',4.2,1105],['Bistro Verde','western',4.4,178],['金师傅炸鸡啤酒','fastfood',4.1,842],['湄南河泰餐','asian',4.5,260],['晨间手冲专门店','cafe',4.8,143],['粥全粥到','soup',4.0,619]];
   const reviews=['汤头浓郁，肉给得实在，饭点要排队。','性价比极高，本地人也常来。','环境安静适合久坐，手冲水准在线。','食材新鲜，服务殷勤，会再来。'];
@@ -277,17 +327,20 @@ function shell(){
 }
 function viewKeys(){
   const g=localStorage.getItem(LS.gkey)||'';
+  const a=localStorage.getItem(LS.akey)||'';
   const div=document.createElement('div');
   div.className='modal-bg';
-  div.innerHTML='<div class="modal"><h3>Google Places API Key</h3>'+
-  '<p class="tip">密钥只保存在<b>这台设备的浏览器</b>里，不会上传到任何地方。'+
-  '<a href="https://console.cloud.google.com/" target="_blank" rel="noreferrer">打开 Google Cloud</a> 创建项目 → 启用 <b>Places API (New)</b> → 创建 API Key（建议<b>不要</b>加“网站限制”，否则会挡住云端中转）。留空则使用演示数据。</p>'+
-  '<label>GOOGLE_MAPS_API_KEY</label><input type="text" id="gk" value="'+esc(g)+'" placeholder="AIza..." autocomplete="off">'+
+  div.innerHTML='<div class="modal"><h3>API 密钥设置</h3>'+
+  '<p class="tip">密钥只保存在<b>这台设备的浏览器</b>里。Google Key 用于韩/日/港/台等地区；高德 Key 用于中国大陆（分类更准）。'+
+  '<a href="https://console.cloud.google.com/" target="_blank" rel="noreferrer">Google Cloud</a> 启用 <b>Places API (New)</b> 后创建 Key（不要加“网站限制”）；'+
+  '<a href="https://lbs.amap.com/" target="_blank" rel="noreferrer">高德开放平台</a> 注册 → 创建应用 → 添加 Key，服务平台选 <b>Web服务</b>（免费，不设白名单）。两者都留空则使用演示数据。</p>'+
+  '<label>GOOGLE_MAPS_API_KEY（韩日港台等）</label><input type="text" id="gk" value="'+esc(g)+'" placeholder="AIza..." autocomplete="off">'+
+  '<label>高德 KEY · Web服务（中国大陆推荐）</label><input type="text" id="ak" value="'+esc(a)+'" placeholder="32 位高德 Web服务 Key" autocomplete="off">'+
   '<div class="row"><button class="btn-line" id="kx">取消</button><button class="btn-red" id="ks">保存并刷新</button></div></div>';
   document.body.appendChild(div);
   div.addEventListener('click',e=>{if(e.target===div)div.remove();});
   $('#kx').addEventListener('click',()=>div.remove());
-  $('#ks').addEventListener('click',()=>{localStorage.setItem(LS.gkey,$('#gk').value.trim());div.remove();cache.clear();if(geo&&!geo.error)startFetch();});
+  $('#ks').addEventListener('click',()=>{localStorage.setItem(LS.gkey,$('#gk').value.trim());localStorage.setItem(LS.akey,$('#ak').value.trim());div.remove();cache.clear();if(geo&&!geo.error)startFetch();});
 }
 function stateHTML(kind,msg){
   if(kind==='loading')return '<div class="state"><div class="spin"></div><p>'+esc(msg||'')+'</p></div>';
@@ -306,10 +359,13 @@ function render(){
   const region=detectRegion(geo.lat,geo.lng);
   const rm=REGION_META[region]||REGION_META.OTHER;
   const st=radii[activeRadius];
+  const amapOn=region==='CN'&&!!(localStorage.getItem(LS.akey)||'');
   let h='<div class="geoline">'+ICON_PIN+'<span>'+geo.lat.toFixed(5)+', '+geo.lng.toFixed(5)+'</span><span>· '+esc(rm.label)+'</span>';
   if(st.status==='ready'&&st.cached)h+='<span>· 缓存结果（秒开）</span>';
   h+='</div>';
-  if(demo())h+='<div class="demo">⚠ <span>当前为<b>演示数据</b>。点击右上角 <b>⚙ 密钥</b> 填入 Google Places API Key 后，即显示你周围的真实餐厅评分。</span></div>';
+  if(demo()&&!amapOn)h+='<div class="demo">⚠ <span>当前为<b>演示数据</b>。点击右上角 <b>⚙ 密钥</b> 填入 Google Places API Key 后，即显示你周围的真实餐厅评分。</span></div>';
+  if(region==='CN'&&amapOn)h+='<div class="demo" style="background:#ecfdf5;border-color:#a7f3d0;color:#065f46">✓ <span>大陆模式：列表来自<b>高德 POI（仅餐饮类，已排除酒店/便利店）</b>，按距离排序；评分与必吃榜请点击每家店下方的<b>大众点评</b>链接对照。</span></div>';
+  if(region==='CN'&&!amapOn)h+='<div class="demo">💡 <span>大陆地区建议在 <b>⚙ 密钥</b> 里再填一个免费的<b>高德 Web 服务 Key</b>：分类更准、不混入酒店便利店。当前使用 Google 数据兜底（已尽力过滤非餐饮场所）。</span></div>';
   h+='<nav class="tabs">'+RADII.map(r=>{
     const s=radii[r];let extra='';
     if(s.status==='loading')extra='<span class="mini-spin"></span>';
@@ -319,7 +375,7 @@ function render(){
   h+='<section class="local"><h2>本地平台对照 · '+esc(rm.label)+'</h2>'+
   '<p class="sub">已根据你的定位自动切换到 <b>'+esc(rm.label)+'</b> 数据源：本地评分平台为 <b>'+esc(rm.source)+'</b>。'+
   '上方每家餐厅卡片底部都附有其搜索直达链接，点击即可打开本地平台对照评分与评价（Naver / Tabelog / OpenRice / 大众点评均无开放评分 API，故采用直达链接对照）。</p></section>';
-  h+='<footer>评分与评价来自 Google Places（密钥仅存于本机浏览器）；结果按坐标缓存 6 小时。地区数据源已按定位自动切换。中国大陆网络下自动通过云端中转获取 Google 数据。</footer>';
+  h+='<footer>评分与评价来自 Google Places（密钥仅存于本机浏览器）；结果按坐标缓存 6 小时。地区数据源已按定位自动切换。</footer>';
   main.innerHTML=h;
   main.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{activeRadius=Number(b.dataset.r);render();}));
   renderTabBody();
@@ -330,7 +386,7 @@ function renderTabBody(){
   if(st.status==='loading'){el.innerHTML='<div class="state"><div class="spin"></div></div>';return;}
   if(st.status==='error'){el.innerHTML='<div class="apierr"><p class="m">'+esc(st.message)+'</p></div>';return;}
   if(!st.cats.length){el.innerHTML='<div class="state"><p>这个范围内没有找到餐厅。</p></div>';return;}
-  el.innerHTML=st.cats.map(c=>'<section class="cat"><div class="cat-head"><h2>'+esc(c.label)+'</h2><span>'+c.items.length+' 家 · 按 Google 评分加权排序</span></div>'+c.items.map((p,i)=>placeHTML(p,i+1)).join('')+'</section>').join('');
+  el.innerHTML=st.cats.map(c=>'<section class="cat"><div class="cat-head"><h2>'+esc(c.label)+'</h2><span>'+c.items.length+' 家 · '+(st.sort==='dist'?'按距离排序 · 评分点点评链接':'按 Google 评分加权排序')+'</span></div>'+c.items.map((p,i)=>placeHTML(p,i+1)).join('')+'</section>').join('');
 }
 function placeHTML(p,rank){
   let h='<div class="place"><div class="rank'+(rank<=3?' top':'')+'">'+rank+'</div><div class="p-body">';
@@ -343,9 +399,10 @@ function placeHTML(p,rank){
   if(p.openNow!=null)h+='<span class="'+(p.openNow?'open':'closed')+'">· '+(p.openNow?'营业中':'已打烊')+'</span>';
   h+='</div>';
   if(p.hoursToday)h+='<p class="p-hours">'+esc(p.hoursToday)+'</p>';
+  if(p.address)h+='<p class="p-hours">'+esc(p.address)+(p.tel?' · '+esc(p.tel):'')+'</p>';
   if(p.review)h+='<blockquote class="p-review">“'+esc(p.review.text)+'”<span class="who">— '+esc(p.review.author)+'</span></blockquote>';
   h+='<div class="p-links">';
-  if(p.mapsUrl)h+='<a class="primary" href="'+esc(p.mapsUrl)+'" target="_blank" rel="noreferrer">Google 地图 ↗</a>';
+  if(p.mapsUrl)h+='<a class="primary" href="'+esc(p.mapsUrl)+'" target="_blank" rel="noreferrer">'+esc(p.mapsLabel||'Google 地图')+' ↗</a>';
   (p.localLinks||[]).forEach(l=>{h+='<a href="'+esc(l.url)+'" target="_blank" rel="noreferrer">'+esc(l.label)+' ↗</a>';});
   return h+'</div></div></div>';
 }
@@ -363,10 +420,13 @@ function startFetch(){
   RADII.forEach(r=>{radii[r]={status:'loading'};});
   render();
   const region=detectRegion(lat,lng);
+  const useAmap=region==='CN'&&!!(localStorage.getItem(LS.akey)||'');
   RADII.forEach(r=>{
-    fetchNearby(lat,lng,r)
-      .then(res=>{if(id!==runId)return;radii[r]={status:'ready',cats:shapePlaces(res.data,lat,lng,region),cached:res.cached};render();})
-      .catch(err=>{if(id!==runId)return;radii[r]={status:'error',message:err.message};render();});
+    const job=useAmap
+      ?fetchAmap(lat,lng,r).then(res=>({cats:shapeAmap(res.data,lat,lng),cached:res.cached,sort:'dist'}))
+      :fetchNearby(lat,lng,r).then(res=>({cats:shapePlaces(res.data,lat,lng,region),cached:res.cached,sort:'score'}));
+    job.then(x=>{if(id!==runId)return;radii[r]={status:'ready',cats:x.cats,cached:x.cached,sort:x.sort};render();})
+       .catch(err=>{if(id!==runId)return;radii[r]={status:'error',message:err.message};render();});
   });
 }
 function boot(){
