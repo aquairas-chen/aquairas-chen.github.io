@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>关西—东京 空间美学考察行程地图 · A版（2026.9.9–16）</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f7f4ee; --paper2:#efe9de; --ink:#1c1a16; --ink3:#6b655a; --line:#ddd5c6;
+  --d1:#9b6a4a; --d2:#5b7065; --d3:#b08d57; --d4:#6b7f8f; --d5:#8f5f6b; --d6:#4f6b7a; --d7:#7a6a8f; --d8:#707a5a;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;line-height:1.75;font-size:15px}
+.serif{font-family:"Noto Serif SC","Songti SC","Noto Serif CJK SC","SimSun",serif}
+.wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+/* hero */
+.hero{padding:96px 0 64px;border-bottom:1px solid var(--line)}
+.kicker{letter-spacing:.35em;font-size:12px;color:var(--ink3);text-transform:uppercase;margin-bottom:18px}
+.hero h1{font-size:clamp(34px,5.5vw,58px);font-weight:900;line-height:1.25;letter-spacing:.02em}
+.hero .sub{margin-top:20px;color:var(--ink3);max-width:720px}
+.hero .stats{display:flex;flex-wrap:wrap;gap:28px;margin-top:34px}
+.hero .stat b{display:block;font-size:30px;font-family:"Noto Serif SC",serif}
+.hero .stat span{font-size:12px;color:var(--ink3);letter-spacing:.15em}
+.vtag{display:inline-block;border:1px solid var(--ink);padding:3px 14px;font-size:12px;letter-spacing:.25em;margin-bottom:20px}
+/* intro */
+.intro{padding:64px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:1fr 1fr;gap:48px}
+.intro h2{font-size:26px;font-weight:900;margin-bottom:18px}
+.intro p{color:#3a362e;margin-bottom:14px}
+.intro .cols p:first-child::first-letter{font-size:2.4em;font-family:"Noto Serif SC",serif;line-height:1;padding-right:6px;color:var(--ink)}
+/* map */
+.mapsec{padding:56px 0 8px}
+.mapsec h2{font-size:26px;font-weight:900;margin-bottom:8px}
+.mapsec .hint{color:var(--ink3);font-size:13px;margin-bottom:18px}
+#map{height:72vh;min-height:520px;border:1px solid var(--line);background:var(--paper2)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 24px}
+.filters button{border:1px solid var(--line);background:#fff;font-family:inherit;font-size:13px;padding:6px 14px;cursor:pointer;letter-spacing:.06em;transition:all .15s}
+.filters button.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.filters button:hover{border-color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--ink3);margin-bottom:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.mk{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;color:#fff;font-size:12px;font-weight:700;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.mk.hotel{border-radius:4px}
+.leaflet-popup-content{font-family:"Noto Sans SC","PingFang SC",sans-serif;font-size:13px;line-height:1.6}
+.leaflet-popup-content b{font-size:14px}
+/* days */
+.days{padding:48px 0 80px}
+.day{border-top:2px solid var(--ink);padding:44px 0;display:grid;grid-template-columns:230px 1fr;gap:44px}
+.day .dhead .dnum{font-size:12px;letter-spacing:.3em;color:var(--ink3)}
+.day .dhead h3{font-size:24px;font-weight:900;margin:8px 0 4px;line-height:1.4}
+.day .dhead .dcity{font-size:13px;color:var(--ink3)}
+.day .dhead .stay{margin-top:14px;font-size:12.5px;border-left:3px solid var(--line);padding-left:10px;color:var(--ink3)}
+.tl{border-left:1px solid var(--line);padding-left:22px}
+.tl .ev{position:relative;padding:0 0 16px 6px}
+.tl .ev::before{content:"";position:absolute;left:-27.5px;top:9px;width:9px;height:9px;border-radius:50%;background:var(--paper);border:2px solid var(--ink3)}
+.tl .ev.move::before{border-color:#b9b0a0;background:#b9b0a0}
+.tl .t{font-size:12px;letter-spacing:.12em;color:var(--ink3);font-weight:700}
+.tl .what{font-weight:700;margin-top:2px}
+.tl .route{font-size:13px;color:var(--ink3);margin-top:2px}
+.tl .route b{color:#8a7a5f;font-weight:700}
+.spot{background:#fff;border:1px solid var(--line);padding:18px 20px;margin:6px 0 18px}
+.spot .nm{font-size:17px;font-weight:700;font-family:"Noto Serif SC","Songti SC",serif}
+.spot .jp{font-size:12px;color:var(--ink3);margin-left:8px;font-weight:400}
+.spot .meta{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 10px}
+.spot .tag{font-size:11.5px;background:var(--paper2);padding:2px 10px;letter-spacing:.05em;color:#5a5347}
+.spot .tag.warn{background:#f3e3d3;color:#8a4a2a}
+.spot .desc{font-size:14px;color:#3a362e}
+.spot .access{font-size:12.5px;color:var(--ink3);margin-top:8px;border-top:1px dashed var(--line);padding-top:8px}
+.warn-note{background:#faf3e6;border:1px solid #e6d3ae;padding:14px 18px;font-size:13.5px;margin:4px 0 16px;color:#6b5424}
+footer{border-top:1px solid var(--line);padding:36px 0 60px;font-size:12.5px;color:var(--ink3)}
+@media(max-width:860px){.intro{grid-template-columns:1fr}.day{grid-template-columns:1fr;gap:20px}}
+@media print{.filters{display:none}#map{height:60vh}}
+</style>
+</head>
+<body>
+<header class="hero"><div class="wrap">
+  <div class="vtag">A 版 · 商业空间 + 美学建筑 实战考察</div>
+  <div class="kicker">Kansai — Tokyo · Spatial Aesthetics Field Trip</div>
+  <h1 class="serif">关西—东京 空间美学考察<br>行程地图与逐日手册</h1>
+  <p class="sub">2026 年 9 月 9 日（周三）— 9 月 16 日（周三）· 2 人团队 · 大阪 2 晚 / 京都 2 晚 / 东京 3 晚。目标：为合伙人建立空间美学与建筑美学的现场感知力，同步考察日本当下最重要的世界级商业空间样本。</p>
+  <div class="stats">
+    <div class="stat"><b class="serif">8</b><span>天行程</span></div>
+    <div class="stat"><b class="serif">4</b><span>城市 / 街区群</span></div>
+    <div class="stat"><b class="serif">18</b><span>考察点位</span></div>
+    <div class="stat"><b class="serif">9</b><span>建筑大师作品</span></div>
+  </div>
+</div></header>
+
+<section class="intro wrap">
+  <div>
+    <h2 class="serif">如何使用这份手册</h2>
+    <p>下方地图以天为图层：每个圆点是一个考察点，数字为当日顺序，连线为建议动线。点击图层按钮可单独查看某一天；点击标记可看要点摘要。</p>
+    <p>地图之下是逐日手册：每天一张时间轴卡，从<strong>离开酒店</strong>开始计算——步行到站、乘车区间（JR 新快速 / 特急优先）、出站步行，逐段给出约数，方便你们现场对齐节奏。</p>
+  </div>
+  <div>
+    <h2 class="serif">三个必须提前预约</h2>
+    <p>① <strong>桂离宫</strong>（9/12 上午）：宫内厅官网预约参观时段，需护照信息，建议立即办理。② <strong>teamLab Borderless</strong>（麻布台之丘内，9/14 上午）：官网按时段购票。③ <strong>Vacant/Centre</strong>：画廊开放时间随展期变动（近期惯例 13:00–18:00、周二三四休廊），9 月展期公布后请在 vacant.vc 确认 9/14 周一是否开放。</p>
+    <p>所有开闭馆信息均为 2026 年 9 月初核实的最新口径；步行与乘车时间为约数，请以 Google Maps 当日导航为准。</p>
+  </div>
+</section>
+
+<section class="mapsec wrap">
+  <h2 class="serif">行程总图 · Google Maps 级底图标记</h2>
+  <p class="hint">圆点 = 考察点（数字为当日顺序）· 方块 = 酒店 · 实线 = 当日动线 · 虚线 = 城际移动</p>
+  <div class="filters" id="filters"></div>
+  <div id="map"></div>
+  <div class="legend" id="legend"></div>
+</section>
+
+<main class="days wrap" id="days"></main>
+
+<footer><div class="wrap">
+  <p>关西—东京 空间美学考察 · A 版 · 生成于 2026-09-03 · 信息核实截至 2026 年 9 月初（visvim 官网、Casa BRUTUS、TECTURE MAG、Dezeen、森大厦、世田谷美术馆官网等）。</p>
+  <p style="margin-top:6px">底图 © OpenStreetMap contributors。本文件为单机 HTML，需联网加载地图瓦片与字体。</p>
+</div></footer>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const HOTELS=[
+ {d:"d1",n:"大阪威斯汀酒店",jp:"ウェスティンホテル大阪",ll:[34.6988,135.4865]},
+ {d:"d3",n:"三井花园酒店京都河原町净教寺",jp:"三井ガーデンホテル京都河原町浄教寺",ll:[35.0033,135.7655]},
+ {d:"d5",n:"三井花园酒店日本桥普米尔",jp:"三井ガーデンホテル日本橋プレミア",ll:[35.6872,139.7734]}
+];
+const DAYS=[
+{id:"d1",c:"#9b6a4a",date:"9/9 周三",city:"大阪",title:"抵达 · 梅田新地标",stay:"住：大阪威斯汀（梅田）",
+ events:[
+  {t:"12:00",w:"关西机场落地（中午）",m:1},
+  {t:"13:00",w:"JR 特急はるか → JR大阪站",r:"乘车约 50 分钟",m:1},
+  {t:"14:00",w:"大阪威斯汀 check-in",r:"大阪站 → 酒店 步行约 10–12 分钟（新梅田シティ方向）",m:1},
+  {t:"15:00–18:00",w:"GRAND GREEN OSAKA + 梅北公园",r:"酒店 → 梅北公园 步行约 10 分钟",spot:{n:"GRAND GREEN OSAKA / 梅北公园",jp:"グラングリーン大阪・うめきた公園",ll:[34.7041,135.4958],tags:["SANAA（妹岛和世×西泽立卫）大屋根","安藤忠雄「VS.」博物馆","2024/9 北馆·2025/3 南馆开幕","亚洲首家 Time Out Market"],d:"梅田二期再开发：4.5 万㎡都市公园与商业共生。南公园 120m「大屋根」由 SANAA 设计，公园内的博物馆「VS.」出自安藤忠雄——“站城一体 + 公园商业”的当前最新样本。",a:"JR 大阪站北侧直连"}},
+  {t:"18:30",w:"梅田蓝天大厦 空中庭园（备选）",spot:{n:"梅田蓝天大厦 空中庭园",jp:"梅田スカイビル",ll:[34.7052,135.4895],tags:["原广司 1993","酒店隔壁"],d:"两栋塔楼顶部以“空中庭园”相连的超高层经典，看梅北与大阪湾夜景。",a:"酒店步行约 3 分钟"}}
+ ]},
+{id:"d2",c:"#5b7065",date:"9/10 周四",city:"神户",title:"神户 · 旧居留地与 visvim 银行旧址",stay:"住：大阪威斯汀（当日往返）",
+ events:[
+  {t:"9:30",w:"酒店出发 → JR大阪站",r:"步行约 10 分钟",m:1},
+  {t:"9:50",w:"JR 神户线 新快速（大阪 → 三ノ宮）",r:"乘车约 20–22 分钟",m:1},
+  {t:"10:15",w:"三ノ宮站 → 沿海岸通/旧居留地步行南下",r:"出站步行约 15 分钟（街景即考察内容）",m:1},
+  {t:"10:30–12:30",w:"旧居留地建筑群散步",spot:{n:"神户旧居留地",jp:"神戸旧居留地",ll:[34.6895,135.1924],tags:["1868 年开港·条约港街区","十五番馆（1880·前美国领事馆·现咖啡）","神户市立博物馆（1935·旧横滨正金银行）"],d:"欧洲近代城市规划网格 + 十余栋留存洋馆，高端品牌与咖啡进入历史建筑的街区活化样本。十五番馆是居留地时代唯一现存商馆，可进内喝一杯。",a:"JR 三ノ宮站步行约 10–15 分钟"}},
+  {t:"13:00–15:00",w:"WMV VISVIM KOBE + little cloud coffee",spot:{n:"WMV VISVIM KOBE（渣打银行旧址）",jp:"チャータードビル 1F",ll:[34.6862,135.1904],tags:["1938 年渣打银行神户支店旧址","11:00–19:00 · 周二休（周四 OK）","关西唯一 visvim 全系店"],d:"2024 年 11 月开业。两层挑空中庭、原装木制旋转门、银行时代水磨石地面全部保留，灯具按 1930 年代样式逐一手工定制。中村世纪“修旧如旧”的零售空间教科书。",a:"中央区海岸通 9-2 · 旧居留地步行约 5 分钟"}},
+  {t:"15:00–17:00",w:"海岸ビルヂング・栄町通方向买手店",spot:{n:"海岸ビル・栄町买手店街区",jp:"海岸ビルヂング・栄町通",ll:[34.6856,135.1899],tags:["ABOUT（旧居留地买手店）","“神户的布鲁克林”"],d:"殖民时代建筑上加建现代塔楼的海岸ビル，与栄町通一带的小型买手店、画廊构成神户最密集的设计街区。",a:"visvim 步行圈 5–10 分钟"}},
+  {t:"17:30",w:"返程回大阪",r:"步行回三ノ宮 15 分钟 + JR 新快速 22 分钟 + 走回酒店 10 分钟 → 约 18:30 到酒店",m:1}
+ ]},
+{id:"d3",c:"#b08d57",date:"9/11 周五",city:"大阪 → 京都",title:"桔子街 · 移宿京都 · 新风馆",stay:"住：三井花园酒店京都河原町净教寺",
+ events:[
+  {t:"10:30",w:"退房、寄存行李",m:1},
+  {t:"10:40",w:"酒店 → 地铁四桥线 西梅田站 → 四ツ橋站",r:"步行约 6 分钟 + 乘车约 4 分钟 + 出站步行约 3 分钟",m:1},
+  {t:"11:00–13:30",w:"Orange Street 桔子街",spot:{n:"Orange Street（立花通・南堀江）",jp:"オレンジストリート",ll:[34.6732,135.4920],tags:["800m 设计家具×潮牌×咖啡街区","11:00 后陆续开门","“大阪的威廉斯堡”"],d:"战前延续至今的家具之街演变为设计街区。重点店：Biotop、ACME Furniture、garland（中古家具）、TIMELESS COMFORT。街道本身的店铺立面更新即是考察对象。",a:"地铁四ツ橋站步行约 3 分钟"}},
+  {t:"14:00",w:"回酒店取行李",r:"四ツ橋 → 西梅田 约 4 分钟 + 步行 6 分钟",m:1},
+  {t:"14:40",w:"JR 京都线 新快速（大阪 → 京都）",r:"步行 10 分钟进站 + 乘车约 29 分钟",m:1},
+  {t:"15:30",w:"酒店 check-in",r:"地铁乌丸线 京都 → 四条 约 4 分钟 + 步行约 7 分钟（或出租车约 10 分钟）",m:1},
+  {t:"16:30–18:00",w:"新风馆 ShinPuhKan",spot:{n:"新风馆 ShinPuhKan",jp:"新風館",ll:[35.0105,135.7597],tags:["隈研吾 × 吉田铁郎","1925 年旧京都中央电话局（登录有形文化财）","亚洲首家 Ace Hotel Kyoto"],d:"隈研吾以“街道贯通街区”的理念在旧栋与新栋之间引入坪庭与街道，历史建筑 × 当代商业的教科书案例。LE LABO、Café Kitsuné、BEAMS JAPAN 等在场。",a:"地铁乌丸御池站直通 · 酒店步行约 10 分钟"}},
+  {t:"18:00",w:"河原町・寺町通夜散策",spot:{n:"河原町・寺町通",jp:"河原町通・寺町通",ll:[35.0060,135.7675],tags:["酒店所在街区","古美术/古书店/锦市场"],d:"寺町通的古美术与旧书店、锦市场的烟火气、新风馆的当代商业，构成一条步行美学动线。",a:"新风馆 → 酒店方向步行串联"}}
+ ]},
+{id:"d4",c:"#6b7f8f",date:"9/12 周六",city:"京都",title:"桂离宫 · 岚山天龙寺",stay:"住：三井花园酒店京都河原町净教寺",
+ events:[
+  {t:"8:45",w:"酒店 → 阪急 京都河原町站",r:"步行约 5–6 分钟",m:1},
+  {t:"9:00",w:"阪急京都线 特急（河原町 → 桂）",r:"乘车约 11–13 分钟",m:1},
+  {t:"9:20",w:"桂站 → 桂离宫",r:"市巴士约 5 分钟 或 步行约 20 分钟",m:1},
+  {t:"10:00–12:00",w:"桂离宫",spot:{n:"桂离宫",jp:"桂離宮",ll:[34.9839,135.7090],tags:["17 世纪皇室离宫","⚠️ 宫内厅官网预约制","周一休（周六 OK）"],d:"日本庭园与数寄屋建筑的最高峰。格罗皮乌斯与布鲁诺·陶特盛赞的“日本之美”原点：池泉回游式庭园 + 书院造的减法美学，是空间美学教育的第一课。",a:"阪急桂站 → 市巴士「桂離宮前」下车"}},
+  {t:"12:30",w:"桂站 → 阪急岚山线 → 岚山站（同站换乘）",r:"乘车约 9 分钟 + 出站步行约 5 分钟",m:1},
+  {t:"13:00–15:00",w:"天龙寺",spot:{n:"天龙寺",jp:"天龍寺",ll:[35.0159,135.6737],tags:["梦窗疏石 1339 年","曹源池·借景庭园","世界文化遗产"],d:"以岚山为借景的池泉回游式庭园，“借景”手法的世界级范本；大方丈背后的曹源池七百年来格局未变。",a:"阪急岚山站步行约 5 分钟"}},
+  {t:"15:00–16:30",w:"竹林小径・岚山商店街",spot:{n:"岚山竹林小径",jp:"竹林の小径",ll:[35.0171,135.6719],tags:["天龙寺北门直连"],d:"从天龙寺北门穿出即达，光影与竹径是“路径即景观”的现场课。",a:"天龙寺步行串联"}},
+  {t:"17:00",w:"返回河原町",r:"阪急岚山线+京都线 岚山 → 河原町 约 25 分钟 + 步行 5–6 分钟回酒店",m:1}
+ ]},
+{id:"d5",c:"#8f5f6b",date:"9/13 周日",city:"京都 → 东京",title:"新干线 · 银座设计三角",stay:"住：三井花园酒店日本桥普米尔",
+ events:[
+  {t:"8:30",w:"退房 → 京都站",r:"出租车约 10 分钟（或乌丸线 四条→京都 4 分钟 + 步行 7 分钟）",m:1},
+  {t:"9:00",w:"东海道新干线 のぞみ（京都 → 东京）",r:"乘车约 2 小时 10 分钟",m:1},
+  {t:"11:15",w:"酒店 check-in",r:"JR 总武线快速 东京 → 新日本桥 约 3 分钟 + 步行约 4 分钟（或出租车 5–8 分钟）",m:1},
+  {t:"13:00",w:"酒店 → 银座",r:"银座线 三越前 → 银座 约 5 分钟（三越前站步行 3 分钟）",m:1},
+  {t:"13:10–15:00",w:"Ginza Sony Park",spot:{n:"Ginza Sony Park",jp:"銀座ソニーパーク",ll:[35.6716,139.7648],tags:["2025/1/26 开幕","芦原义信 1966 索尼大楼旧址","地上 5 层 + 地下 4 层立体公园","11:00–19:00"],d:"在银座最贵地块“拆楼建公园”的反商业商业：裸露混凝土垂直长廊、不设固定店铺只办活动、地面中庭全天候开放。企业与城市关系的当代宣言。",a:"地铁银座站 B9 出口直连"}},
+  {t:"15:00–16:00",w:"森冈书店",spot:{n:"森冈书店（一册一室）",jp:"森岡書店",ll:[35.6726,139.7718],tags:["银座铃木大楼 1929","每周只卖一本书","13:00–20:00 · 周一休（周日 OK）"],d:"15㎡ 的世界最小策展型书店，2022 年入选伦敦 Courier《全球最佳店铺》榜单。“零售 = 策展”的极端样本，坂本龙一也曾到访。",a:"银座 1-28-15 铃木ビル 1F · Sony Park 步行约 10 分钟"}},
+  {t:"16:30–18:30",w:"GINZA SIX",spot:{n:"GINZA SIX",jp:"ギンザシックス",ll:[35.6697,139.7661],tags:["谷口吉生 2017","旧松坂屋旧址"],d:"谷口吉生的立面与中央大吹拔、轮换展出的大型艺术装置，高端百货空间的日本答案。",a:"森冈书店步行约 8 分钟"}},
+  {t:"19:00",w:"返回酒店",r:"银座线约 5 分钟 + 步行 3 分钟",m:1}
+ ]},
+{id:"d6",c:"#4f6b7a",date:"9/14 周一",city:"东京",title:"美术馆闭馆日 · 世界级商业空间纵贯线",stay:"住：三井花园酒店日本桥普米尔",
+ warn:"今天是多数美术馆的闭馆日，行程全部安排商业/开放空间。teamLab Borderless 建议购 10:00 时段票；Vacant/Centre 周一按近期惯例开放（13:00–18:00），出发前请在 vacant.vc 确认 9 月展期。",
+ events:[
+  {t:"9:20",w:"酒店 → 日比谷线 人形町站 → 神谷町站",r:"步行约 8 分钟 + 乘车约 13 分钟（神谷町站与麻布台之丘直连）",m:1},
+  {t:"9:45–13:00",w:"麻布台之丘 + teamLab Borderless",spot:{n:"麻布台之丘 Azabudai Hills",jp:"麻布台ヒルズ",ll:[35.6609,139.7405],tags:["Heatherwick Studio 公共空间/裙楼","藤本壮介 商业入口","森 JP Tower 330m 日本第一高楼","2023/11 开幕"],d:"8.1ha “现代都市村庄”：2.4ha 绿地、320 种植物、可行走的屋顶坡地。商业 × 景观 × 文化一体化的当代最高范本。teamLab Borderless（⚠️时段票）在 Garden Plaza B 地下。",a:"日比谷线神谷町站 5 号出口直连"}},
+  {t:"13:30–14:30",w:"21_21 Design Sight",r:"日比谷线 神谷町 → 六本木 1 站约 2 分钟 + 步行约 5 分钟",spot:{n:"21_21 Design Sight",jp:"21_21 デザインサイト",ll:[35.6655,139.7299],tags:["安藤忠雄 2007","三宅一生发起","东京 Midtown 庭园内"],d:"“设计之眼”——埋入地下的折板屋顶与长向采光缝，展览策划质量常年在线。",a:"六本木站/乃木坂站步行 5 分钟"}},
+  {t:"15:00–16:00",w:"表参道之丘",r:"大江户线 六本木 → 青山一丁目 约 4 分钟 + 步行约 5 分钟",spot:{n:"表参道之丘 Omotesando Hills",jp:"表参道ヒルズ",ll:[35.6673,139.7093],tags:["安藤忠雄 2006","250m 螺旋坡道"],d:"为呼应表参道榉树林而压低体量，内部以 250m 连续螺旋坡道组织商业动线——“商业动线即建筑”的经典。",a:"表参道站 A2 出口步行 2 分钟"}},
+  {t:"16:30–17:15",w:"涩谷 PARCO 3F · Frama 东京首店",r:"半藏门线 表参道 → 涩谷 1 站约 2 分钟 + 步行约 7 分钟",spot:{n:"Frama 东京（涩谷 PARCO 3F）",jp:"Frama Tokyo",ll:[35.6620,139.6988],tags:["2025/9 开业","丹麦以外首个永久零售空间"],d:"16㎡ 店中店：本地杉木/桧木 × 钢 × 石材的“wellbeing 建筑”。同层还有 Santa Maria Novella 等可顺带看。",a:"涩谷区宇田川町 15-1 涩谷 PARCO 3F"}},
+  {t:"17:30–18:00",w:"Vacant/Centre",r:"千代田线 明治神宫前 → 代代木上原 1 站约 2 分钟 + 步行约 3 分钟（全程约 20 分钟；或出租车 10 分钟）",spot:{n:"Vacant/Centre",jp:"Vacant/Centre",ll:[35.6710,139.6896],tags:["永井祐介·文化空间学","2021 年开业（设计：phyle）","13:00–18:00 · 周二三四休"],d:"画廊 × 商店 × 艺术家驻留的混合空间。Frama 今年 1–2 月刚在此办“FRAMA VISITS VACANT”展，与 PARCO 店可对照参观。⚠️ 开放随展期变动，出发前确认。",a:"渋谷区元代々木町 27-6 · 小田急 代代木八幡站北口步行 3 分钟"}},
+  {t:"19:00",w:"返回酒店",r:"半藏门线 涩谷 → 三越前 直达约 18 分钟 + 步行 3 分钟",m:1}
+ ]},
+{id:"d7",c:"#7a6a8f",date:"9/15 周二",city:"东京",title:"世田谷 — 目黑 — 高轮 · 建筑美学纵贯线",stay:"住：三井花园酒店日本桥普米尔",
+ events:[
+  {t:"9:10",w:"酒店 → 半藏门线 三越前站 → 直通东急田园都市线 → 用贺站",r:"步行 3 分钟 + 乘车约 35–40 分钟（免换乘）",m:1},
+  {t:"10:00–12:00",w:"世田谷美术馆",r:"用贺站 → 美术馆 巴士约 5 分钟 / 步行约 18 分钟（建议出租车 5 分钟）",spot:{n:"世田谷美术馆",jp:"世田谷美術館",ll:[35.6350,139.6150],tags:["内井昭蔵 1986","砧公园内","10:00–18:00 · 周一休（周二 OK）","2026 年开馆 40 周年"],d:"“人与自然对话”的公园美术馆建筑经典，回廊、天井与自然光的序列是空间感知训练的绝佳现场；馆藏约 18,000 件（含亨利·卢梭与素人艺术系统收藏）。",a:"东急田园都市线 用贺站 + 巴士/出租车"}},
+  {t:"12:30",w:"用贺 → 涩谷 → 目黑",r:"田园都市线约 15 分钟 + JR 山手线约 5 分钟",m:1},
+  {t:"13:10–15:00",w:"东京都庭园美术馆",r:"目黑站步行约 7 分钟",spot:{n:"东京都庭园美术馆",jp:"東京都庭園美術館",ll:[35.6364,139.7191],tags:["旧朝香宫邸 1933","日本 Art Deco 最高峰","周一休（周二 OK）"],d:"建筑本身即展品：Lalique 玻璃门、Henri Rapin 室内、庭园与邸宅一体。皇族邸宅 → 都立美术馆的保存活用样本。",a:"JR/地铁 目黑站步行约 7 分钟"}},
+  {t:"15:30–16:30",w:"（弹性可选）山种美术馆",r:"日比谷线 目黑 → 广尾 2 站约 4 分钟 + 步行约 8 分钟",spot:{n:"山种美术馆（可选）",jp:"山種美術館",ll:[35.6512,139.7227],tags:["1966 年·日本第一家日本画专门馆","周一休"],d:"藏东山魁夷、速水御舟等日本画约 1800 件，地下展厅的照明设计极讲究。若庭园美术馆看得久可舍弃。",a:"广尾站步行约 8 分钟"}},
+  {t:"17:00–20:00",w:"NEWoMan 高轮 / TAKANAWA GATEWAY CITY",r:"JR 山手线 目黑 → 高轮 Gateway 直达约 11 分钟",spot:{n:"NEWoMan 高轮 / TAKANAWA GATEWAY CITY",jp:"ニュウマン高輪",ll:[35.6356,139.7407],tags:["2025/3 部分开幕·2026 春全开","隈研吾 高轮 Gateway 站 + MoN Takanawa","28–29F 约 2000 坪空中植物园"],d:"东京最大再开发（9.5ha）：NEWoMan 约 200 店跨三栋大楼，隈研吾设计的车站与文化设施 MoN Takanawa（2026 春已开放）构成站城一体 TOD 的最新形态。傍晚到看昼夜交替。",a:"JR 高轮 Gateway 站直连"}},
+  {t:"20:30",w:"返回酒店",r:"都营浅草线 泉岳寺 → 东日本桥 约 13 分钟 + 步行约 5 分钟",m:1}
+ ]},
+{id:"d8",c:"#707a5a",date:"9/16 周三",city:"东京",title:"日本桥室町 · 返程",stay:"退房日",
+ events:[
+  {t:"9:00–11:00",w:"日本桥室町街区散步",spot:{n:"日本桥室町 / COREDO 室町",jp:"日本橋室町",ll:[35.6866,139.7727],tags:["三井集团街区再生","三越本店（1914/1935 文艺复兴式）","日本桥（1911 石拱桥）"],d:"“日本道路的原点”。室町再开发让历史街区恢复步行尺度；三越本店中央挑空与天女像值得进内一看。",a:"酒店出发全程步行"}},
+  {t:"11:00",w:"退房 → 机场",r:"羽田：都营浅草线 东日本桥直达约 30–35 分钟 · 成田：东京站 N'EX 约 60 分钟",m:1}
+ ]}
+];
+</script>
+<script>
+const map=L.map("map",{scrollWheelZoom:true}).setView([35.2,137.6],7);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap contributors"}).addTo(map);
+const layers={};
+function mkIcon(color,txt,hotel){return L.divIcon({className:"",html:`<div class="mk${hotel?" hotel":""}" style="background:${color}">${txt}</div>`,iconSize:[26,26],iconAnchor:[13,13],popupAnchor:[0,-14]});}
+DAYS.forEach(day=>{
+  const g=L.layerGroup();let idx=0;const pts=[];
+  day.events.forEach(ev=>{if(ev.spot&&ev.spot.ll){idx++;const s=ev.spot;pts.push(s.ll);
+    L.marker(s.ll,{icon:mkIcon(day.c,idx)}).bindPopup(`<b>${s.n}</b><br><span style="color:#888">${s.jp||""}</span><br>${s.d||""}`).addTo(g);}});
+  HOTELS.filter(h=>h.d===day.id).forEach(h=>{L.marker(h.ll,{icon:mkIcon("#1c1a16","宿",1)}).bindPopup(`<b>${h.n}</b><br><span style="color:#888">${h.jp}</span>`).addTo(g);pts.push(h.ll);});
+  if(pts.length>1)L.polyline(pts,{color:day.c,weight:3,opacity:.75}).addTo(g);
+  layers[day.id]={g,pts,c:day.c};g.addTo(map);
+});
+// 城际虚线
+L.polyline([[34.6988,135.4865],[35.0033,135.7655]],{color:"#8a7a5f",weight:2,dashArray:"6 8",opacity:.6}).addTo(map).bindPopup("9/11 · JR 新快速 大阪→京都 约29分钟");
+L.polyline([[35.0033,135.7655],[35.6872,139.7734]],{color:"#8a7a5f",weight:2,dashArray:"6 8",opacity:.6}).addTo(map).bindPopup("9/13 · 新干线のぞみ 京都→东京 约2小时10分");
+map.fitBounds([[34.55,134.95],[35.85,140.05]],{padding:[30,30]});
+// filters
+const F=document.getElementById("filters");
+const views={all:"全部",kansai:"关西（D1–D4）",tokyo:"东京（D5–D8）"};
+DAYS.forEach(d=>{const b=document.createElement("button");b.className="on";b.innerHTML=`<i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${d.c};margin-right:6px"></i>${d.date} ${d.city}`;
+ b.onclick=()=>{b.classList.toggle("on");const on=b.classList.contains("on");on?layers[d.id].g.addTo(map):map.removeLayer(layers[d.id].g);};F.appendChild(b);});
+[["全部显示",0],["只看关西",1],["只看东京",2]].forEach(([label,mode])=>{const b=document.createElement("button");b.style.fontWeight="700";b.textContent=label;
+ b.onclick=()=>{const btns=F.querySelectorAll("button");DAYS.forEach((d,i)=>{const want=mode===0||(mode===1&&i<=3)||(mode===2&&i>=4);btns[i].classList.toggle("on",want);want?layers[d.id].g.addTo(map):map.removeLayer(layers[d.id].g);});
+  const BB=[[[34.55,134.95],[35.85,140.05]],[[34.55,134.95],[35.20,135.95]],[[35.55,139.40],[35.85,140.05]]];map.fitBounds(BB[mode],{padding:[30,30]});};F.appendChild(b);});
+// legend
+document.getElementById("legend").innerHTML=DAYS.map(d=>`<span><i style="background:${d.c}"></i>${d.date} ${d.city}</span>`).join("");
+// day cards
+const main=document.getElementById("days");
+main.innerHTML=DAYS.map(day=>`
+ <section class="day" style="border-top-color:${day.c}">
+  <div class="dhead">
+    <div class="dnum">${day.date}</div>
+    <h3 class="serif">${day.title}</h3>
+    <div class="dcity">${day.city}</div>
+    <div class="stay">${day.stay}</div>
+  </div>
+  <div>
+   ${day.warn?`<div class="warn-note">⚠️ ${day.warn}</div>`:""}
+   <div class="tl">
+   ${day.events.map(ev=>`
+    <div class="ev${ev.m?" move":""}">
+      <div class="t">${ev.t}</div>
+      <div class="what">${ev.w}</div>
+      ${ev.r?`<div class="route">→ ${ev.r}</div>`:""}
+      ${ev.spot?`<div class="spot">
+        <div><span class="nm">${ev.spot.n}</span><span class="jp">${ev.spot.jp||""}</span></div>
+        <div class="meta">${ev.spot.tags.map(t=>`<span class="tag${t.startsWith("⚠️")?" warn":""}">${t}</span>`).join("")}</div>
+        <div class="desc">${ev.spot.d}</div>
+        <div class="access">📍 ${ev.spot.a||""}</div>
+      </div>`:""}
+    </div>`).join("")}
+   </div>
+  </div>
+ </section>`).join("");
+</script>
+</body>
+</html>
