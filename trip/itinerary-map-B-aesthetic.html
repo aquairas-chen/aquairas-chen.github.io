@@ -5,9 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>关西—东京 空间美学考察行程地图 · B版 纯美学教育（2026.9.9–16）</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5.3.0/500.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5.3.0/700.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5.3.0/900.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5.3.0/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5.3.0/500.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5.3.0/700.css">
 <style>
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 :root{
   --paper:#f5f2ec; --paper2:#ece6d9; --ink:#1a1814; --ink3:#6b655a; --line:#d9d1c0;
   --d1:#8a6248; --d2:#4f6b5e; --d3:#a8863f; --d4:#5f7488; --d5:#8a5a66; --d6:#44607a; --d7:#6e6288; --d8:#68744f;
@@ -54,7 +60,6 @@ body{background:var(--paper);color:var(--ink);font-family:"Noto Sans SC","PingFa
 .tl .t{font-size:12px;letter-spacing:.12em;color:var(--ink3);font-weight:700}
 .tl .what{font-weight:700;margin-top:2px}
 .tl .route{font-size:13px;color:var(--ink3);margin-top:2px}
-.tl .route b{color:#8a7a5f;font-weight:700}
 .spot{background:#fff;border:1px solid var(--line);padding:18px 20px;margin:6px 0 18px}
 .spot .nm{font-size:17px;font-weight:700;font-family:"Noto Serif SC","Songti SC",serif}
 .spot .jp{font-size:12px;color:var(--ink3);margin-left:8px;font-weight:400}
@@ -66,7 +71,45 @@ body{background:var(--paper);color:var(--ink);font-family:"Noto Sans SC","PingFa
 .spot .access{font-size:12.5px;color:var(--ink3);margin-top:8px;border-top:1px dashed var(--line);padding-top:8px}
 .warn-note{background:#faf3e6;border:1px solid #e6d3ae;padding:14px 18px;font-size:13.5px;margin:4px 0 16px;color:#6b5424}
 footer{border-top:1px solid var(--line);padding:36px 0 60px;font-size:12.5px;color:var(--ink3)}
-@media(max-width:860px){.intro{grid-template-columns:1fr}.day{grid-template-columns:1fr;gap:20px}}
+/* ===== iPad 横屏（861–1180px）===== */
+@media(min-width:861px) and (max-width:1180px){
+  .wrap{max-width:960px;padding:0 24px}
+  .hero{padding:64px 0 48px}
+  .day{grid-template-columns:200px 1fr;gap:32px}
+  #map{height:60vh;min-height:440px}
+}
+/* ===== 手机（≤860px，含 iPad 竖屏）===== */
+@media(max-width:860px){
+  .intro{grid-template-columns:1fr}
+  .day{grid-template-columns:1fr;gap:20px}
+  .wrap{padding:0 18px}
+  .hero{padding:56px 0 40px}
+  .kicker{letter-spacing:.22em;font-size:11px}
+  .hero h1{font-size:clamp(26px,7.2vw,34px)}
+  .hero .sub{font-size:14px}
+  .hero .stats{gap:16px 26px}
+  .hero .stat b{font-size:24px}
+  .intro{padding:44px 0;gap:28px}
+  .intro h2,.mapsec h2{font-size:21px}
+  .mapsec{padding:40px 0 8px}
+  #map{height:58vh;min-height:340px}
+  .filters{flex-wrap:nowrap;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch}
+  .filters button{flex:0 0 auto;white-space:nowrap}
+  .days{padding:32px 0 56px}
+  .day{padding:32px 0}
+  .day .dhead h3{font-size:20px}
+  .tl{padding-left:16px}
+  .tl .ev::before{left:-21.5px}
+  .spot{padding:14px 15px}
+  .spot .nm{font-size:15.5px}
+  .spot .jp{margin-left:0;display:block;margin-top:2px}
+  .spot .desc{font-size:13.5px}
+  .vtag{letter-spacing:.18em}
+}
+@media(max-width:380px){
+  .wrap{padding:0 14px}
+  .hero .stats{gap:12px 20px}
+}
 @media print{.filters{display:none}#map{height:60vh}}
 </style>
 </head>
