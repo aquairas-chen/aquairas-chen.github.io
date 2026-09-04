@@ -1,0 +1,26 @@
+/* 自托管思源宋体/黑体子集（仅含行程页用字，每个约 360KB） */
+@font-face{
+  font-family:"Noto Serif SC";
+  font-style:normal;font-weight:400;font-display:swap;
+  src:url("./fonts/NotoSerifSC-400.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Noto Serif SC";
+  font-style:normal;font-weight:600;font-display:swap;
+  src:url("./fonts/NotoSerifSC-600.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Noto Serif SC";
+  font-style:normal;font-weight:700;font-display:swap;
+  src:url("./fonts/NotoSerifSC-700.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Noto Sans SC";
+  font-style:normal;font-weight:400;font-display:swap;
+  src:url("./fonts/NotoSansSC-400.woff2") format("woff2");
+}
+@font-face{
+  font-family:"Noto Sans SC";
+  font-style:normal;font-weight:700;font-display:swap;
+  src:url("./fonts/NotoSansSC-700.woff2") format("woff2");
+}
